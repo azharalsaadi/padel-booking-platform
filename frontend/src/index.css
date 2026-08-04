@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/*
+ * Design system tokens (locked): warm off-white background, white surfaces,
+ * deep natural green primary, soft olive secondary, dark charcoal text,
+ * generous whitespace, rounded controls, very subtle shadows.
+ * Shared by both the customer and admin interfaces.
+ */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Editorial serif used only for customer-facing display headings (Rally
+     brand identity) — admin and body copy stay on --font-sans throughout. */
+  --font-serif: "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+
+  --color-background: #faf7f1;
+  --color-surface: #ffffff;
+
+  --color-primary-50: #eaf2ee;
+  --color-primary-100: #cfe3d7;
+  --color-primary-300: #7fac93;
+  --color-primary-500: #2f5d47;
+  --color-primary-600: #234a37;
+  --color-primary-700: #1c3c2c;
+  --color-primary: var(--color-primary-500);
+  --color-primary-hover: var(--color-primary-600);
+
+  --color-secondary-50: #f4f5ec;
+  --color-secondary-100: #e5e7cf;
+  --color-secondary-300: #b9bd8b;
+  --color-secondary-500: #8a9160;
+  --color-secondary-600: #6f764c;
+  --color-secondary: var(--color-secondary-500);
+
+  --color-text: #2a2a27;
+  --color-text-muted: #6b6a63;
+  --color-border: #e7e2d8;
+
+  --color-success: #2f6d4f;
+  --color-success-50: #eaf3ee;
+  --color-warning: #b3831f;
+  --color-warning-50: #faf2e2;
+  --color-danger: #a83c3c;
+  --color-danger-50: #f7eaea;
+  --color-info: #3d6b8a;
+  --color-info-50: #e9f0f4;
+
+  --color-focus-ring: #2f5d47;
+
+  --radius-control: 0.625rem;
+  --radius-card: 1.25rem;
+
+  --shadow-soft: 0 1px 2px rgba(42, 42, 39, 0.04), 0 4px 12px rgba(42, 42, 39, 0.05);
+  --shadow-soft-lg: 0 2px 4px rgba(42, 42, 39, 0.04), 0 12px 24px rgba(42, 42, 39, 0.06);
+  --shadow-soft-xl: 0 8px 16px rgba(42, 42, 39, 0.08), 0 24px 48px rgba(42, 42, 39, 0.12);
+}
+
+/*
+ * Customer-facing brand identity (scoped, additive only). Applied via the
+ * .theme-customer class on CustomerShell's root — admin never receives
+ * this class, so its green identity (the @theme values above) is
+ * completely untouched. Every shared component (Button, Card, Badge,
+ * RadioGroup, ...) already reads color via these token names, so this
+ * single override re-themes the whole customer UI without touching any
+ * component file.
+ *
+ * Only the primary brand color (previously dark forest green) becomes
+ * black — the warm beige/cream accent ramp (secondary-*) is deliberately
+ * NOT converted to gray, since it's used for the calendar-icon box, the
+ * "available" legend dot, and small badges, which the approved reference
+ * keeps as warm beige throughout.
+ */
+.theme-customer {
+  --color-primary-50: #f2f2f2;
+  --color-primary-100: #e0e0e0;
+  --color-primary-300: #a3a3a3;
+  --color-primary-500: #111111;
+  --color-primary-600: #000000;
+  --color-primary-700: #000000;
+  --color-primary: #111111;
+  --color-primary-hover: #2a2a2a;
+
+  /* Warm beige/cream — preserved from the reference. -100 matches the
+     calendar-icon background (#F3E7D3); -300 matches the "available"
+     legend dot (#EADCC8). */
+  --color-secondary-50: #f9f1e7;
+  --color-secondary-100: #f3e7d3;
+  --color-secondary-300: #eadcc8;
+  --color-secondary-500: #cbb18f;
+  --color-secondary-600: #a98f68;
+  --color-secondary: #cbb18f;
+
+  --color-border: #e5e5e3;
+  --color-focus-ring: #111111;
+}
+
+/*
+ * Typography and spacing (Step 13): both interfaces use Tailwind's default
+ * type scale (text-xs..text-3xl) and spacing scale (space-1..space-16)
+ * as-is — deliberately not redefined here, so there is exactly one scale
+ * to keep consistent. See the component showcase page for the documented
+ * reference of which sizes/weights/spacing values to use where.
+ */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ * Visible focus states (Step 13 accessibility requirement): a consistent
+ * keyboard-focus ring on every interactive element, only when navigating
+ * by keyboard (not on mouse click) via :focus-visible.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}

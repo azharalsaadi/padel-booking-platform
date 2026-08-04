@@ -1,0 +1,18 @@
+# Local assistant/session files
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+/.idea
+/.vscode
+/.fleet
+/.nova
+/.zed
+
+# Frontend (kept here too so it applies regardless of subfolder-level gitignore)
+frontend/node_modules
+frontend/dist
+frontend/.env
