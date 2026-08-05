@@ -1,4 +1,5 @@
 import { Camera, MessageCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Container } from '@/components/layout/Container'
 
 /**
@@ -10,12 +11,14 @@ import { Container } from '@/components/layout/Container'
  * the library no longer ships brand icons.
  */
 export function CustomerFooter() {
+  const { t } = useTranslation()
+
   return (
     <footer className="border-t border-border bg-background">
       <Container className="flex flex-col gap-6 py-10 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-3">
           <span className="font-serif text-xl font-bold tracking-wide text-primary">RALLY</span>
-          <p className="max-w-xs text-sm text-text-muted">The intersection of high-performance sport and luxury lifestyle in Oman.</p>
+          <p className="max-w-xs text-sm text-text-muted">{t('footer.tagline')}</p>
           <div className="flex items-center gap-3 text-text-muted">
             <Camera aria-hidden="true" className="h-5 w-5" strokeWidth={1.4} />
             <MessageCircle aria-hidden="true" className="h-5 w-5" strokeWidth={1.4} />
@@ -24,12 +27,12 @@ export function CustomerFooter() {
 
         <div className="flex flex-col gap-4 sm:items-end">
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-text-muted">
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-            <span>Contact Us</span>
-            <span>Instagram</span>
+            <span>{t('footer.privacyPolicy')}</span>
+            <span>{t('footer.termsOfService')}</span>
+            <span>{t('footer.contactUs')}</span>
+            <span>{t('footer.instagram')}</span>
           </div>
-          <p className="text-sm text-text-muted">&copy; {new Date().getFullYear()} Rally Premium Padel. All rights reserved.</p>
+          <p className="text-sm text-text-muted">{t('footer.rights', { year: new Date().getFullYear() })}</p>
         </div>
       </Container>
     </footer>

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { screen } from '@testing-library/react'
 import { renderWithProviders } from '@/test/renderWithProviders'
 import { PaymentFailedPage } from '@/pages/customer/PaymentFailedPage'
 import * as customerApi from '@/api/customer'
@@ -43,48 +42,28 @@ describe('PaymentFailedPage', () => {
     renderFailed()
 
     expect(await screen.findByText('BK-20260810-000001')).toBeInTheDocument()
-    expect(screen.getByText(/nothing was lost/i)).toBeInTheDocument()
+    expect(screen.getByText(/no charge has been made/i)).toBeInTheDocument()
   })
 
-  it('redirects to the new checkout_url after a successful retry', async () => {
-    mockedApi.retryThawaniPayment.mockResolvedValue({
-      ...booking,
-      checkout_url: 'https://uatcheckout.thawani.om/pay/new_session',
-    })
-    // jsdom's window.location.assign isn't directly spy-able (non-configurable),
-    // so the whole location object is swapped for a mock-friendly stand-in.
-    const assignMock = vi.fn()
-    Object.defineProperty(window, 'location', {
-      value: { ...window.location, assign: assignMock },
-      writable: true,
-    })
-
+  it('does not show a Try Payment Again button', async () => {
     renderFailed()
-    await userEvent.click(await screen.findByRole('button', { name: 'Retry payment' }))
 
-    await waitFor(() => expect(assignMock).toHaveBeenCalledWith('https://uatcheckout.thawani.om/pay/new_session'))
+    await screen.findByText('BK-20260810-000001')
+    expect(screen.queryByRole('button', { name: /try payment again/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument()
   })
 
-  it('shows an error toast when retry succeeds but no checkout_url comes back', async () => {
-    mockedApi.retryThawaniPayment.mockResolvedValue({ ...booking, checkout_url: undefined })
-
+  it('keeps the View Booking link pointing at the booking token', async () => {
     renderFailed()
-    await userEvent.click(await screen.findByRole('button', { name: 'Retry payment' }))
 
-    expect(await screen.findByText('Could not start payment')).toBeInTheDocument()
+    const viewBookingLink = await screen.findByRole('link', { name: 'View Booking' })
+    expect(viewBookingLink).toHaveAttribute('href', `/booking/${TOKEN}`)
   })
 
-  it('shows an error toast when the retry request itself fails', async () => {
-    mockedApi.retryThawaniPayment.mockRejectedValue(
-      Object.assign(new Error('down'), {
-        isAxiosError: true,
-        response: { status: 409, data: { message: 'The payment hold for this booking has expired.', error_code: 'PAYMENT_HOLD_EXPIRED' } },
-      }),
-    )
-
+  it('keeps the Book Another Court link', async () => {
     renderFailed()
-    await userEvent.click(await screen.findByRole('button', { name: 'Retry payment' }))
 
-    expect(await screen.findByText('The payment hold for this booking has expired.')).toBeInTheDocument()
+    const bookAnotherLink = await screen.findByRole('link', { name: 'Book Another Court' })
+    expect(bookAnotherLink).toHaveAttribute('href', '/book')
   })
 })

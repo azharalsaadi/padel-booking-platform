@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { AvailabilitySlot } from '@/types/api'
 import { formatTimeLabel } from '@/lib/datetime'
 import { cn } from '@/lib/cn'
@@ -22,9 +23,12 @@ interface SlotGridProps {
  * slots) — there is no court identity anywhere in this component's props.
  */
 export function SlotGrid({ date, slots, isLoading, isError, onRetry, isSelected, onToggle }: SlotGridProps) {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language === 'ar' ? 'ar' : 'en'
+
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4" aria-busy="true" aria-label="Loading available times">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4" aria-busy="true" aria-label={t('booking.loadingAvailableTimes')}>
         {Array.from({ length: 8 }, (_, index) => (
           <Skeleton key={index} className="h-12" />
         ))}
@@ -35,10 +39,10 @@ export function SlotGrid({ date, slots, isLoading, isError, onRetry, isSelected,
   if (isError) {
     return (
       <ErrorMessage
-        message="We couldn't load available times for this date."
+        message={t('booking.couldNotLoadTimes')}
         action={
           <Button size="sm" onClick={onRetry}>
-            Try again
+            {t('common.tryAgain')}
           </Button>
         }
       />
@@ -46,13 +50,13 @@ export function SlotGrid({ date, slots, isLoading, isError, onRetry, isSelected,
   }
 
   if (!slots || slots.length === 0) {
-    return <EmptyState title="No available times" description="There are no available time slots for this date. Try another date." />
+    return <EmptyState title={t('booking.noAvailableTimesTitle')} description={t('booking.noAvailableTimesDescription')} />
   }
 
   return (
     <div
       role="group"
-      aria-label={`Available times for ${date}`}
+      aria-label={t('booking.availableTimesFor', { date })}
       className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4"
     >
       {slots.map((slot) => {
@@ -71,7 +75,7 @@ export function SlotGrid({ date, slots, isLoading, isError, onRetry, isSelected,
                 : 'border-border bg-surface text-text hover:border-primary-300',
             )}
           >
-            {formatTimeLabel(slot.start_time)}
+            {formatTimeLabel(slot.start_time, locale)}
           </button>
         )
       })}

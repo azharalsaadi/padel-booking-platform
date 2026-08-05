@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   CalendarDays,
   Check,
@@ -13,51 +14,13 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { useBookingByToken, useRefreshPayment } from '@/hooks/useGuestBooking'
 import { parseApiError } from '@/api/errors'
 import { formatBaisa } from '@/lib/money'
+import { formatDateLabel, formatTimeLabel } from '@/lib/datetime'
 import type { BookingView } from '@/types/api'
 
 type ProcessingBooking = BookingView & {
   booking_reference?: string
-  booking_date?: string
-  date?: string
-  start_time?: string
-  end_time?: string
   total_price_baisa?: number
   currency?: string
-}
-
-function formatBookingDate(value?: string) {
-  if (!value) return 'Date not available'
-
-  const date = new Date(`${value}T00:00:00`)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(date)
-}
-
-function formatBookingTime(value?: string) {
-  if (!value) return ''
-
-  const [hours = '0', minutes = '0'] = value.split(':')
-  const date = new Date()
-
-  date.setHours(Number(hours), Number(minutes), 0, 0)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date)
 }
 
 /**
@@ -65,6 +28,8 @@ function formatBookingTime(value?: string) {
  * The backend is always queried again before the booking is shown as paid.
  */
 export function ProcessingPage() {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language === 'ar' ? 'ar' : 'en'
   const { token = '' } = useParams<{ token: string }>()
 
   const bookingQuery = useBookingByToken(token)
@@ -98,8 +63,8 @@ export function ProcessingPage() {
       <Container className="flex min-h-[620px] items-center justify-center px-4 py-16">
         <div className="w-full max-w-xl">
           <ErrorMessage
-            title="Could not load your booking"
-            message="We couldn't find this booking. Your payment reference is unaffected. Please check your booking access link."
+            title={t('processing.couldNotLoadBookingTitle')}
+            message={t('processing.couldNotLoadBookingMessage')}
           />
         </div>
       </Container>
@@ -118,24 +83,27 @@ export function ProcessingPage() {
     booking.booking_status === 'confirmed' &&
     booking.payment_status === 'paid'
 
-  const bookingDate =
-    booking.booking_date ??
-    booking.date
+  // BookingView carries no top-level date/time — every slot lives in
+  // `slots` (BookingResource); the earliest session is the primary one.
+  const sortedSlots = [...(booking.slots ?? [])].sort((a, b) =>
+    a.date === b.date ? a.start_time.localeCompare(b.start_time) : a.date.localeCompare(b.date),
+  )
+  const primarySlot = sortedSlots[0]
 
-  const formattedDate = formatBookingDate(bookingDate)
-  const formattedStartTime = formatBookingTime(booking.start_time)
-  const formattedEndTime = formatBookingTime(booking.end_time)
+  const formattedDate = primarySlot?.date ? formatDateLabel(primarySlot.date, locale) : t('processing.dateNotAvailable')
+  const formattedStartTime = primarySlot?.start_time ? formatTimeLabel(primarySlot.start_time, locale) : ''
+  const formattedEndTime = primarySlot?.end_time ? formatTimeLabel(primarySlot.end_time, locale) : ''
 
   const timeRange =
     formattedStartTime && formattedEndTime
       ? `${formattedStartTime} – ${formattedEndTime}`
       : formattedStartTime ||
         formattedEndTime ||
-        'Time not available'
+        t('processing.timeNotAvailable')
 
   const bookingReference =
     booking.booking_reference ??
-    'Reference unavailable'
+    t('errors.referenceUnavailable')
 
   const totalAmount =
     typeof booking.total_price_baisa === 'number'
@@ -143,7 +111,7 @@ export function ProcessingPage() {
           booking.total_price_baisa,
           booking.currency ?? 'OMR',
         )
-      : 'OMR 0.000'
+      : t('errors.genericAmount')
 
   return (
     <Container className="flex flex-col items-center px-4 pb-16 pt-12 text-center sm:pt-16 lg:pb-20">
@@ -155,7 +123,7 @@ export function ProcessingPage() {
             className="h-4 w-4"
             strokeWidth={2.2}
           />
-          1. Success
+          {t('processing.step1Success')}
         </span>
 
         <span
@@ -164,7 +132,7 @@ export function ProcessingPage() {
         />
 
         <span className="inline-flex h-10 items-center rounded-full bg-[#f9dddd] px-5 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#a52626]">
-          2. Failed
+          {t('processing.step2Failed')}
         </span>
 
         <span
@@ -173,7 +141,7 @@ export function ProcessingPage() {
         />
 
         <span className="inline-flex h-10 items-center rounded-full bg-[#f0e4cd] px-5 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#4e4235]">
-          3. Pay at Venue
+          {t('processing.step3PayAtVenue')}
         </span>
       </div>
 
@@ -199,14 +167,14 @@ export function ProcessingPage() {
       {/* Heading */}
       <h1 className="mt-6 font-serif text-[44px] font-semibold leading-none tracking-[-0.04em] text-text sm:text-[56px]">
         {isConfirmedAndPaid
-          ? 'Payment Successful'
-          : 'Confirming Your Payment'}
+          ? t('processing.paymentSuccessful')
+          : t('processing.confirmingPayment')}
       </h1>
 
       <p className="mt-4 max-w-[620px] text-[16px] text-text-muted sm:text-[18px]">
         {isConfirmedAndPaid
-          ? "Your booking is confirmed. We've sent the details to your email."
-          : 'Please wait while we securely confirm your payment with Thawani.'}
+          ? t('processing.paymentSuccessfulDescription')
+          : t('processing.confirmingPaymentDescription')}
       </p>
 
       {/* Refresh status */}
@@ -219,14 +187,14 @@ export function ProcessingPage() {
             aria-hidden="true"
             className="h-4 w-4 animate-spin"
           />
-          Checking your payment status with Thawani...
+          {t('processing.checkingStatus')}
         </p>
       )}
 
       {refreshMutation.isError && (
         <div className="mt-6 w-full max-w-[740px]">
           <ErrorMessage
-            title="Could not confirm payment yet"
+            title={t('processing.couldNotConfirmTitle')}
             message={parseApiError(refreshMutation.error).message}
             action={
               <button
@@ -234,7 +202,7 @@ export function ProcessingPage() {
                 onClick={() => refreshMutation.mutate()}
                 className="rounded-[5px] bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#292929]"
               >
-                Check Again
+                {t('processing.checkAgain')}
               </button>
             }
           />
@@ -248,7 +216,7 @@ export function ProcessingPage() {
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-text-muted">
-                Booking Reference
+                {t('processing.bookingReference')}
               </p>
 
               <p className="mt-2 break-all font-serif text-[27px] font-semibold leading-none tracking-[-0.025em] text-text sm:text-[34px]">
@@ -259,14 +227,14 @@ export function ProcessingPage() {
             <div className="flex items-center gap-3 sm:flex-col sm:items-end">
               <span className="rounded-full bg-black px-5 py-2 text-[11px] font-semibold uppercase text-white">
                 {booking.booking_status === 'confirmed'
-                  ? 'Confirmed'
-                  : 'Pending'}
+                  ? t('processing.confirmed')
+                  : t('processing.pending')}
               </span>
 
               <span className="rounded-full bg-[#ccefe1] px-5 py-2 text-[11px] font-semibold uppercase text-black">
                 {booking.payment_status === 'paid'
-                  ? 'Paid'
-                  : 'Processing'}
+                  ? t('processing.paid')
+                  : t('processing.processingStatus')}
               </span>
             </div>
           </div>
@@ -285,7 +253,7 @@ export function ProcessingPage() {
 
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-text-muted">
-                Date &amp; Time
+                {t('processing.dateAndTime')}
               </p>
 
               <p className="mt-1 text-[14px] font-medium text-text sm:text-[16px]">
@@ -297,7 +265,7 @@ export function ProcessingPage() {
           {/* Total amount */}
           <div className="mt-8 flex flex-col justify-between gap-4 bg-[#f5f3f1] px-5 py-5 sm:flex-row sm:items-center">
             <span className="text-[12px] font-semibold uppercase tracking-[0.09em] text-text-muted">
-              Total Amount Paid
+              {t('processing.totalAmountPaid')}
             </span>
 
             <span className="font-serif text-[29px] font-semibold leading-none tracking-[-0.02em] text-text sm:text-[34px]">
@@ -319,14 +287,14 @@ export function ProcessingPage() {
               className="h-[18px] w-[18px]"
               strokeWidth={1.8}
             />
-            View Booking
+            {t('common.viewBooking')}
           </Link>
 
           <Link
             to="/book"
             className="flex h-[56px] items-center justify-center rounded-[5px] border border-[#8f8982] bg-white px-6 text-[15px] font-medium text-text transition hover:bg-background"
           >
-            Book Another Court
+            {t('common.bookAnotherCourt')}
           </Link>
         </div>
       ) : (
@@ -343,14 +311,14 @@ export function ProcessingPage() {
                 refreshMutation.isPending ? 'animate-spin' : ''
               }`}
             />
-            Check Again
+            {t('processing.checkAgain')}
           </button>
 
           <Link
             to={`/booking/${token}`}
             className="inline-flex h-[52px] items-center justify-center rounded-[5px] border border-border bg-white px-6 text-[14px] font-medium text-text transition hover:bg-background"
           >
-            Go to Your Booking
+            {t('processing.goToYourBooking')}
           </Link>
         </div>
       )}

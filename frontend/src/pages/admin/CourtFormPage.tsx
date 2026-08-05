@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Container } from '@/components/layout/Container'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -16,6 +17,7 @@ import { parseApiError } from '@/api/errors'
 import type { CourtWorkingHourEntry } from '@/types/admin'
 
 export function CourtFormPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id?: string }>()
   const courtId = id ? Number(id) : null
   const isEditing = courtId !== null
@@ -48,7 +50,7 @@ export function CourtFormPage() {
   if (isEditing && courtQuery.isLoading) {
     return (
       <Container className="py-2">
-        <Card aria-busy="true" aria-label="Loading court">
+        <Card aria-busy="true" aria-label={t('admin.courts.loadingCourt')}>
           <Skeleton className="h-6 w-1/3" />
           <Skeleton className="mt-4 h-24 w-full" />
         </Card>
@@ -60,10 +62,10 @@ export function CourtFormPage() {
     return (
       <Container className="py-2">
         <ErrorMessage
-          message="We couldn't load this court."
+          message={t('admin.courts.couldNotLoadCourt')}
           action={
             <Button size="sm" onClick={() => courtQuery.refetch()}>
-              Try again
+              {t('admin.courts.tryAgain')}
             </Button>
           }
         />
@@ -78,7 +80,7 @@ export function CourtFormPage() {
     setGeneralError(null)
 
     if (name.trim() === '') {
-      setNameError('Court name is required.')
+      setNameError(t('admin.courts.nameRequiredError'))
       return
     }
 
@@ -92,7 +94,7 @@ export function CourtFormPage() {
     const mutation = isEditing ? updateMutation : createMutation
     mutation.mutate(payload, {
       onSuccess: () => {
-        show({ variant: 'success', title: isEditing ? 'Court updated' : 'Court created' })
+        show({ variant: 'success', title: isEditing ? t('admin.courts.courtUpdated') : t('admin.courts.courtCreated') })
         navigate('/admin/courts')
       },
       onError: (error) => {
@@ -111,8 +113,8 @@ export function CourtFormPage() {
 
   function handleSaveWorkingHours(workingHours: CourtWorkingHourEntry[]) {
     workingHoursMutation.mutate(workingHours, {
-      onSuccess: () => show({ variant: 'success', title: 'Working hours saved' }),
-      onError: (error) => show({ variant: 'error', title: 'Could not save working hours', description: parseApiError(error).message }),
+      onSuccess: () => show({ variant: 'success', title: t('admin.workingHours.workingHoursSaved') }),
+      onError: (error) => show({ variant: 'error', title: t('admin.workingHours.couldNotSaveWorkingHours'), description: parseApiError(error).message }),
     })
   }
 
@@ -120,32 +122,32 @@ export function CourtFormPage() {
 
   return (
     <Container className="flex flex-col gap-6 py-2">
-      <h1 className="text-2xl font-semibold text-text">{isEditing ? 'Edit Court' : 'Add Court'}</h1>
+      <h1 className="text-2xl font-semibold text-text">{isEditing ? t('admin.courts.editCourt') : t('admin.courts.addCourt')}</h1>
 
       <Card>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-          <Input label="Name" required value={name} onChange={(event) => setName(event.target.value)} error={nameError} />
+          <Input label={t('admin.courts.name')} required value={name} onChange={(event) => setName(event.target.value)} error={nameError} />
           <Textarea
-            label="Description (optional)"
+            label={t('admin.courts.descriptionOptional')}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             error={descriptionError}
           />
           <Input
-            label="Sort order"
+            label={t('admin.courts.sortOrder')}
             type="number"
             min={0}
             value={sortOrder}
             onChange={(event) => setSortOrder(event.target.value)}
-            helperText="Lower numbers are listed first."
+            helperText={t('admin.courts.sortOrderHelper')}
           />
-          <Checkbox label="Active" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
+          <Checkbox label={t('admin.courts.activeCheckbox')} checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
 
           {generalError && <ErrorMessage message={generalError} />}
 
           <div>
             <Button type="submit" isLoading={isSaving}>
-              {isEditing ? 'Save changes' : 'Create court'}
+              {isEditing ? t('admin.courts.saveChanges') : t('admin.courts.createCourt')}
             </Button>
           </div>
         </form>

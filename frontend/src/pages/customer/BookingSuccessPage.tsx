@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   CalendarDays,
   Check,
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { formatBaisa } from '@/lib/money'
+import { formatDateLabel, formatTimeLabel } from '@/lib/datetime'
 import type { BookingView } from '@/types/api'
 
 interface LocationState {
@@ -19,56 +21,15 @@ interface LocationState {
 
 type BookingSuccessData = BookingView & {
   booking_reference?: string
-  booking_date?: string
-  date?: string
-  start_time?: string
-  end_time?: string
   total_price_baisa?: number
   currency?: string
 }
 
 const THAWANI_REDIRECT_DELAY_MS = 3000
 
-function formatBookingDate(value?: string) {
-  if (!value) {
-    return 'Date not available'
-  }
-
-  const date = new Date(`${value}T00:00:00`)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(date)
-}
-
-function formatBookingTime(value?: string) {
-  if (!value) {
-    return ''
-  }
-
-  const [hours = '0', minutes = '0'] = value.split(':')
-  const date = new Date()
-
-  date.setHours(Number(hours), Number(minutes), 0, 0)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date)
-}
-
 export function BookingSuccessPage() {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language === 'ar' ? 'ar' : 'en'
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -101,11 +62,11 @@ export function BookingSuccessPage() {
       <Container className="py-12">
         <Card>
           <EmptyState
-            title="No booking to show"
-            description="This page is only reachable right after completing a booking."
+            title={t('bookingSuccess.noBookingTitle')}
+            description={t('bookingSuccess.noBookingDescription')}
             action={
               <Button onClick={() => navigate('/book')}>
-                Book a Court
+                {t('common.bookACourt')}
               </Button>
             }
           />
@@ -122,11 +83,11 @@ export function BookingSuccessPage() {
         </div>
 
         <h1 className="mt-8 font-serif text-[44px] font-semibold tracking-[-0.035em] text-text sm:text-[54px]">
-          Redirecting to Payment
+          {t('bookingSuccess.redirectingTitle')}
         </h1>
 
         <p className="mt-4 max-w-lg text-[16px] leading-7 text-text-muted">
-          Please wait while we securely redirect you to Thawani Sandbox.
+          {t('bookingSuccess.redirectingDescription')}
         </p>
 
         {checkoutUrl ? (
@@ -134,37 +95,40 @@ export function BookingSuccessPage() {
             href={checkoutUrl}
             className="mt-7 font-semibold text-text underline underline-offset-4"
           >
-            Continue to Payment
+            {t('bookingSuccess.continueToPayment')}
           </a>
         ) : (
           <p
             role="alert"
             className="mt-7 max-w-lg rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
           >
-            We couldn&apos;t start the online payment. Your booking
-            reference is safe. Please open your booking to retry.
+            {t('bookingSuccess.couldNotStartOnlinePayment')}
           </p>
         )}
       </Container>
     )
   }
 
-  const bookingDate =
-    booking.booking_date ?? booking.date
+  // BookingView carries no top-level date/time — every slot lives in
+  // `slots` (BookingResource); the earliest session is the primary one.
+  const sortedSlots = [...(booking.slots ?? [])].sort((a, b) =>
+    a.date === b.date ? a.start_time.localeCompare(b.start_time) : a.date.localeCompare(b.date),
+  )
+  const primarySlot = sortedSlots[0]
 
-  const formattedDate = formatBookingDate(bookingDate)
-  const formattedStartTime = formatBookingTime(booking.start_time)
-  const formattedEndTime = formatBookingTime(booking.end_time)
+  const formattedDate = primarySlot?.date ? formatDateLabel(primarySlot.date, locale) : t('bookingSuccess.dateNotAvailable')
+  const formattedStartTime = primarySlot?.start_time ? formatTimeLabel(primarySlot.start_time, locale) : ''
+  const formattedEndTime = primarySlot?.end_time ? formatTimeLabel(primarySlot.end_time, locale) : ''
 
   const timeRange =
     formattedStartTime && formattedEndTime
       ? `${formattedStartTime} – ${formattedEndTime}`
       : formattedStartTime ||
         formattedEndTime ||
-        'Time not available'
+        t('bookingSuccess.timeNotAvailable')
 
   const bookingReference =
-    booking.booking_reference ?? 'Reference unavailable'
+    booking.booking_reference ?? t('errors.referenceUnavailable')
 
   const totalAmount =
     typeof booking.total_price_baisa === 'number'
@@ -172,7 +136,7 @@ export function BookingSuccessPage() {
           booking.total_price_baisa,
           booking.currency ?? 'OMR',
         )
-      : 'OMR 0.000'
+      : t('errors.genericAmount')
 
   return (
     <Container className="flex flex-col items-center px-4 pb-16 pt-12 text-center sm:pt-16 lg:pb-20">
@@ -184,7 +148,7 @@ export function BookingSuccessPage() {
             className="h-4 w-4"
             strokeWidth={2.2}
           />
-          1. Success
+          {t('bookingSuccess.step1Success')}
         </span>
 
         <span
@@ -193,7 +157,7 @@ export function BookingSuccessPage() {
         />
 
         <span className="inline-flex h-10 items-center rounded-full bg-[#f9dddd] px-5 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#a52626]">
-          2. Failed
+          {t('bookingSuccess.step2Failed')}
         </span>
 
         <span
@@ -209,7 +173,7 @@ export function BookingSuccessPage() {
               strokeWidth={2.2}
             />
           )}
-          3. Pay at Venue
+          {t('bookingSuccess.step3PayAtVenue')}
         </span>
       </div>
 
@@ -226,11 +190,11 @@ export function BookingSuccessPage() {
 
       {/* Heading */}
       <h1 className="mt-6 font-serif text-[44px] font-semibold leading-none tracking-[-0.04em] text-text sm:text-[56px]">
-        Booking Confirmed
+        {t('bookingSuccess.bookingConfirmed')}
       </h1>
 
       <p className="mt-4 max-w-[620px] text-[16px] leading-7 text-text-muted sm:text-[18px]">
-        Your booking is reserved. Pay when you arrive at the venue.
+        {t('bookingSuccess.bookingConfirmedDescription')}
       </p>
 
       {/* Booking card */}
@@ -239,7 +203,7 @@ export function BookingSuccessPage() {
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-text-muted">
-                Booking Reference
+                {t('bookingSuccess.bookingReference')}
               </p>
 
               <p className="mt-2 break-all font-serif text-[28px] font-semibold leading-none tracking-[-0.025em] text-text sm:text-[34px]">
@@ -249,11 +213,11 @@ export function BookingSuccessPage() {
 
             <div className="flex items-center gap-3 sm:flex-col sm:items-end">
               <span className="rounded-full bg-black px-5 py-2 text-[11px] font-semibold uppercase text-white">
-                Confirmed
+                {t('bookingSuccess.confirmed')}
               </span>
 
               <span className="rounded-full bg-[#f0e4cd] px-5 py-2 text-[11px] font-semibold uppercase text-[#4e4235]">
-                Pay at Venue
+                {t('booking.payAtVenue')}
               </span>
             </div>
           </div>
@@ -271,7 +235,7 @@ export function BookingSuccessPage() {
 
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-text-muted">
-                Date &amp; Time
+                {t('bookingSuccess.dateAndTime')}
               </p>
 
               <p className="mt-1 text-[14px] font-medium text-text sm:text-[16px]">
@@ -282,7 +246,7 @@ export function BookingSuccessPage() {
 
           <div className="mt-8 flex flex-col justify-between gap-4 bg-[#f5f3f1] px-5 py-5 sm:flex-row sm:items-center">
             <span className="text-[12px] font-semibold uppercase tracking-[0.09em] text-text-muted">
-              Amount to Pay at Venue
+              {t('bookingSuccess.amountToPayAtVenue')}
             </span>
 
             <span className="font-serif text-[30px] font-semibold leading-none tracking-[-0.02em] text-text sm:text-[34px]">
@@ -307,7 +271,7 @@ export function BookingSuccessPage() {
               className="h-[18px] w-[18px]"
               strokeWidth={1.8}
             />
-            View Booking
+            {t('common.viewBooking')}
           </button>
         )}
 
@@ -315,7 +279,7 @@ export function BookingSuccessPage() {
           to="/book"
           className="flex h-[56px] items-center justify-center rounded-[5px] border border-[#8f8982] bg-white px-6 text-[15px] font-medium text-text transition hover:bg-background"
         >
-          Book Another Court
+          {t('common.bookAnotherCourt')}
         </Link>
       </div>
     </Container>

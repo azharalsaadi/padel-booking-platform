@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { QuoteResponse } from '@/types/api'
 import { formatBaisa } from '@/lib/money'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -19,9 +20,11 @@ interface BookingSummaryProps {
  * "authoritative prices always come from the backend" requirement.
  */
 export function BookingSummary({ quote, isLoading, isError, onRetry, compact = false }: BookingSummaryProps) {
+  const { t } = useTranslation()
+
   if (isLoading) {
     return (
-      <div aria-busy="true" aria-label="Loading price" className="flex flex-col gap-2">
+      <div aria-busy="true" aria-label={t('booking.loadingPrice')} className="flex flex-col gap-2">
         <Skeleton className="h-5 w-2/3" />
         {!compact && <Skeleton className="h-4 w-1/2" />}
       </div>
@@ -31,11 +34,11 @@ export function BookingSummary({ quote, isLoading, isError, onRetry, compact = f
   if (isError) {
     return (
       <ErrorMessage
-        title="Could not load pricing"
-        message="We couldn't calculate the price for your selection."
+        title={t('booking.couldNotLoadPricingTitle')}
+        message={t('booking.couldNotLoadPricingMessage')}
         action={
           <Button size="sm" onClick={onRetry}>
-            Retry
+            {t('common.retry')}
           </Button>
         }
       />
@@ -43,15 +46,13 @@ export function BookingSummary({ quote, isLoading, isError, onRetry, compact = f
   }
 
   if (!quote) {
-    return <p className="text-sm text-text-muted">Select at least one time slot to see pricing.</p>
+    return <p className="text-sm text-text-muted">{t('booking.selectSlotToSeePricing')}</p>
   }
 
   if (compact) {
     return (
       <div className="flex items-center justify-between text-sm">
-        <span className="text-text-muted">
-          {quote.total_hours} hour{quote.total_hours === 1 ? '' : 's'}
-        </span>
+        <span className="text-text-muted">{t('booking.hoursCount', { count: quote.total_hours })}</span>
         <span className="font-semibold text-text">{formatBaisa(quote.total_price_baisa, quote.currency)}</span>
       </div>
     )
@@ -60,30 +61,30 @@ export function BookingSummary({ quote, isLoading, isError, onRetry, compact = f
   return (
     <dl className="flex flex-col gap-2 text-sm">
       <div className="flex justify-between">
-        <dt className="text-text-muted">Total hours</dt>
+        <dt className="text-text-muted">{t('booking.totalHours')}</dt>
         <dd className="text-text">{quote.total_hours}</dd>
       </div>
       <div className="flex justify-between">
-        <dt className="text-text-muted">Price per hour</dt>
+        <dt className="text-text-muted">{t('booking.pricePerHour')}</dt>
         <dd className="text-text">{formatBaisa(quote.applied_rule.price_per_hour_baisa, quote.currency)}</dd>
       </div>
       <div className="flex justify-between">
-        <dt className="text-text-muted">Standard subtotal</dt>
+        <dt className="text-text-muted">{t('booking.standardSubtotal')}</dt>
         <dd className="text-text">{formatBaisa(quote.standard_subtotal_baisa, quote.currency)}</dd>
       </div>
       {quote.discount_baisa > 0 && (
         <div className="flex justify-between">
-          <dt className="text-success">Discount</dt>
+          <dt className="text-success">{t('booking.discount')}</dt>
           <dd className="text-success">&minus;{formatBaisa(quote.discount_baisa, quote.currency)}</dd>
         </div>
       )}
       <div className="mt-2 flex items-center justify-between border-t border-border pt-3">
-        <dt className="font-serif text-xl font-semibold text-text">Total</dt>
+        <dt className="font-serif text-xl font-semibold text-text">{t('booking.total')}</dt>
         <dd className="font-serif text-xl font-semibold text-text">{formatBaisa(quote.total_price_baisa, quote.currency)}</dd>
       </div>
       {!quote.all_slots_available && (
         <p role="alert" className="mt-1 text-sm text-danger">
-          One or more selected times are no longer available. Please review your selection.
+          {t('booking.slotsUnavailableWarning')}
         </p>
       )}
     </dl>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { CustomerHeader } from '@/components/layout/CustomerHeader'
 import { CustomerFooter } from '@/components/layout/CustomerFooter'
+import { useSyncCustomerLanguage } from '@/i18n/config'
 
 interface CustomerShellProps {
   children: ReactNode
@@ -14,6 +15,8 @@ interface CustomerShellProps {
  * this wrapper, so AdminShell's green identity is completely unaffected.
  */
 export function CustomerShell({ children }: CustomerShellProps) {
+  useSyncCustomerLanguage()
+
   return (
     <div className="theme-customer flex min-h-screen flex-col">
       <CustomerHeader />

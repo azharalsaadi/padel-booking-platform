@@ -41,8 +41,10 @@ class BookingSlot extends Model
     }
 
     /**
-     * Internal-only: the randomly assigned court. Customer-facing API
-     * Resources must never serialize this relationship or its id/name.
+     * The randomly assigned court. Customer-facing API Resources must never
+     * serialize this relationship's id, and must never serialize its name
+     * except the one deliberate exception documented on Court — the
+     * customer's own confirmed-and-paid booking.
      */
     public function court(): BelongsTo
     {

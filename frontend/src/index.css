@@ -91,6 +91,13 @@
 
   --color-border: #e5e5e3;
   --color-focus-ring: #111111;
+
+  /* Widens every <Container> (max-w-6xl) on the customer site so the
+     navbar, hero, marketing sections, and footer all share one consistent
+     content grid with less empty side margin on laptop/desktop — admin's
+     own --container-6xl stays Tailwind's default (72rem) since this is
+     scoped to .theme-customer only. */
+  --container-6xl: 87.5rem;
 }
 
 /*

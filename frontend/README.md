@@ -2,6 +2,12 @@
 
 Run this alongside the `backend` app (see `backend/README.md`, including the cross-origin cookie notes — required for admin login to work).
 
+### Requirements
+
+- Node.js `^20.19.0 || >=22.12.0` (Vite 8's minimum) and npm
+
+### Setup
+
 ```bash
 npm install
 cp .env.example .env      # VITE_API_BASE_URL defaults to http://localhost:8000/api
@@ -14,6 +20,12 @@ Visit `http://localhost:5173` for the customer flow, or `http://localhost:5173/a
 npm test                   # vitest — all API calls are HTTP-transport-mocked, no backend needed
 npm run build               # tsc -b && vite build
 ```
+
+### Troubleshooting
+
+- **Every page shows a network/loading error**: the `backend` app isn't running, or `VITE_API_BASE_URL` in `.env` doesn't match where it's actually listening — see `backend/README.md`.
+- **Admin login rejects correct credentials, or refreshing the admin panel logs you out**: this is almost always the backend's CORS/session cookie configuration, not the frontend — see the "Cross-origin session cookies" section in `backend/README.md`.
+- **Port 5173 already in use**: stop whatever else is bound to it, or run `npm run dev -- --port <other-port>` and update `FRONTEND_URL`/`SANCTUM_STATEFUL_DOMAINS` on the backend to match.
 
 # React + TypeScript + Vite
 

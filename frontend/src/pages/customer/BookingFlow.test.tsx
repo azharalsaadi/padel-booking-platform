@@ -76,7 +76,7 @@ async function submitBooking(paymentMethodLabel: string) {
   await waitFor(() => expect(mockedApi.fetchQuote).toHaveBeenCalled())
   await userEvent.click(await screen.findByRole('button', { name: 'Continue to payment' }))
 
-  await userEvent.type(screen.getByLabelText(/phone number/i), '+96891234567')
+  await userEvent.type(screen.getByLabelText(/phone number/i), '91234567')
   await userEvent.click(screen.getByLabelText(paymentMethodLabel, { exact: false }))
   await userEvent.click(screen.getByRole('button', { name: 'Complete booking' }))
 }

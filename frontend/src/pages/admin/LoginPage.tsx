@@ -1,22 +1,26 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { ErrorMessage } from '@/components/ui/ErrorMessage'
 import { useAdminLogin, useAdminMe } from '@/hooks/admin/useAdminAuth'
 import { parseApiError } from '@/api/errors'
+import { useSyncAdminLanguage } from '@/i18n/config'
 
 interface LocationState {
   from?: { pathname: string }
 }
 
 export function LoginPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const meQuery = useAdminMe()
   const loginMutation = useAdminLogin()
+  useSyncAdminLanguage()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -57,12 +61,12 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
-        <h1 className="text-xl font-semibold text-text">Admin Login</h1>
-        <p className="mt-1 text-sm text-text-muted">Sign in to manage courts, pricing, and bookings.</p>
+        <h1 className="text-xl font-semibold text-text">{t('admin.login.title')}</h1>
+        <p className="mt-1 text-sm text-text-muted">{t('admin.login.subtitle')}</p>
 
         <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
           <Input
-            label="Email"
+            label={t('admin.login.email')}
             type="email"
             autoComplete="username"
             required
@@ -71,7 +75,7 @@ export function LoginPage() {
             error={emailError}
           />
           <Input
-            label="Password"
+            label={t('admin.login.password')}
             type="password"
             autoComplete="current-password"
             required
@@ -82,7 +86,7 @@ export function LoginPage() {
           {generalError && <ErrorMessage message={generalError} />}
 
           <Button type="submit" isLoading={loginMutation.isPending}>
-            Log in
+            {t('admin.login.logIn')}
           </Button>
         </form>
       </Card>

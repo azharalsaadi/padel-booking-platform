@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { SelectedSlot } from '@/types/api'
 import { formatDateLabel, formatTimeLabel } from '@/lib/datetime'
 import { formatBaisa } from '@/lib/money'
@@ -42,8 +43,11 @@ function ClockIcon() {
  * returns one rate for the whole booking).
  */
 export function SelectedSlotsReview({ slots, onRemove, pricePerHourBaisa, currency }: SelectedSlotsReviewProps) {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language === 'ar' ? 'ar' : 'en'
+
   if (slots.length === 0) {
-    return <EmptyState title="No times selected yet" description="Go back and choose a date and time to review it here." />
+    return <EmptyState title={t('booking.noTimesSelectedTitle')} description={t('booking.noTimesSelectedReviewDescription')} />
   }
 
   const sorted = [...slots].sort((a, b) => (a.date === b.date ? a.start_time.localeCompare(b.start_time) : a.date.localeCompare(b.date)))
@@ -58,8 +62,8 @@ export function SelectedSlotsReview({ slots, onRemove, pricePerHourBaisa, curren
                 <CalendarIcon />
               </span>
               <div>
-                <p className="text-xs font-semibold tracking-wide text-text-muted uppercase">Date</p>
-                <p className="text-sm font-medium text-text">{formatDateLabel(slot.date)}</p>
+                <p className="text-xs font-semibold tracking-wide text-text-muted uppercase">{t('booking.date')}</p>
+                <p className="text-sm font-medium text-text">{formatDateLabel(slot.date, locale)}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -67,9 +71,9 @@ export function SelectedSlotsReview({ slots, onRemove, pricePerHourBaisa, curren
                 <ClockIcon />
               </span>
               <div>
-                <p className="text-xs font-semibold tracking-wide text-text-muted uppercase">Time &amp; duration</p>
+                <p className="text-xs font-semibold tracking-wide text-text-muted uppercase">{t('booking.timeAndDuration')}</p>
                 <p className="text-sm font-medium text-text">
-                  {formatTimeLabel(slot.start_time)}&ndash;{formatTimeLabel(slot.end_time)} (1 hour)
+                  {formatTimeLabel(slot.start_time, locale)}&ndash;{formatTimeLabel(slot.end_time, locale)} {t('booking.oneHourSuffix')}
                 </p>
               </div>
             </div>
@@ -86,7 +90,7 @@ export function SelectedSlotsReview({ slots, onRemove, pricePerHourBaisa, curren
               onClick={() => onRemove(slot)}
               className="text-xs font-semibold tracking-wide text-danger uppercase hover:underline"
             >
-              Remove slot
+              {t('booking.removeSlot')}
             </button>
           </div>
         </div>

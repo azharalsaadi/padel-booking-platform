@@ -221,7 +221,7 @@ describe('BookingPage — step 3: details and payment', () => {
     mockedApi.createBooking.mockResolvedValue(booking)
 
     await advanceToStep3()
-    await userEvent.type(screen.getByLabelText(/phone number/i), '+96891234567')
+    await userEvent.type(screen.getByLabelText(/phone number/i), '91234567')
     await userEvent.click(screen.getByLabelText('Pay at Venue', { exact: false }))
     await userEvent.click(screen.getByRole('button', { name: 'Complete booking' }))
 
@@ -250,7 +250,7 @@ describe('BookingPage — step 3: details and payment', () => {
     mockedApi.createBooking.mockResolvedValue(booking)
 
     await advanceToStep3()
-    await userEvent.type(screen.getByLabelText(/phone number/i), '+96891234567')
+    await userEvent.type(screen.getByLabelText(/phone number/i), '91234567')
     await userEvent.click(screen.getByLabelText('Pay at Venue', { exact: false }))
     await userEvent.click(screen.getByRole('button', { name: 'Complete booking' }))
 
@@ -281,7 +281,7 @@ describe('BookingPage — step 3: details and payment', () => {
     mockedApi.createBooking.mockResolvedValue(booking)
 
     await advanceToStep3()
-    await userEvent.type(screen.getByLabelText(/phone number/i), '+96891234567')
+    await userEvent.type(screen.getByLabelText(/phone number/i), '91234567')
     await userEvent.click(screen.getByLabelText('Pay Online with Thawani', { exact: false }))
     await userEvent.click(screen.getByRole('button', { name: 'Complete booking' }))
 
@@ -301,7 +301,7 @@ describe('BookingPage — step 3: details and payment', () => {
     )
 
     await advanceToStep3()
-    await userEvent.type(screen.getByLabelText(/phone number/i), '+96891234567')
+    await userEvent.type(screen.getByLabelText(/phone number/i), '91234567')
     await userEvent.click(screen.getByLabelText('Pay at Venue', { exact: false }))
     await userEvent.click(screen.getByRole('button', { name: 'Complete booking' }))
 
@@ -312,7 +312,7 @@ describe('BookingPage — step 3: details and payment', () => {
     mockedApi.createBooking.mockRejectedValue(Object.assign(new Error('offline'), { isAxiosError: true }))
 
     await advanceToStep3()
-    await userEvent.type(screen.getByLabelText(/phone number/i), '+96891234567')
+    await userEvent.type(screen.getByLabelText(/phone number/i), '91234567')
     await userEvent.click(screen.getByLabelText('Pay at Venue', { exact: false }))
     await userEvent.click(screen.getByRole('button', { name: 'Complete booking' }))
 

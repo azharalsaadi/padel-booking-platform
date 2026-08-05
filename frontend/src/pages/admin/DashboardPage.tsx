@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Container } from '@/components/layout/Container'
 import { SummaryCard } from '@/components/admin/SummaryCard'
 import { useCourts } from '@/hooks/admin/useCourts'
@@ -14,6 +15,7 @@ import { toLocalIsoDate } from '@/lib/datetime'
  * with 20 or fewer courts, which this project's scale never exceeds.
  */
 export function DashboardPage() {
+  const { t } = useTranslation()
   const today = toLocalIsoDate(new Date())
 
   const courtsQuery = useCourts()
@@ -25,32 +27,35 @@ export function DashboardPage() {
 
   return (
     <Container className="flex flex-col gap-6 py-2">
-      <h1 className="text-2xl font-semibold text-text">Dashboard</h1>
+      <div>
+        <h1 className="text-2xl font-semibold text-text">{t('admin.dashboard.title')}</h1>
+        <p className="mt-1 text-sm text-text-muted">{t('admin.dashboard.description')}</p>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
-          label="Active courts"
+          label={t('admin.dashboard.activeCourts')}
           value={activeCourts}
           isLoading={courtsQuery.isLoading}
           isError={courtsQuery.isError}
           description={
-            (courtsQuery.data?.meta.total ?? 0) > 20 ? 'Of first 20 courts loaded' : undefined
+            (courtsQuery.data?.meta.total ?? 0) > 20 ? t('admin.dashboard.ofFirst20CourtsLoaded') : undefined
           }
         />
         <SummaryCard
-          label="Bookings today"
+          label={t('admin.dashboard.bookingsToday')}
           value={todayBookingsQuery.data?.meta.total}
           isLoading={todayBookingsQuery.isLoading}
           isError={todayBookingsQuery.isError}
         />
         <SummaryCard
-          label="Pending payments"
+          label={t('admin.dashboard.pendingPayments')}
           value={pendingBookingsQuery.data?.meta.total}
           isLoading={pendingBookingsQuery.isLoading}
           isError={pendingBookingsQuery.isError}
         />
         <SummaryCard
-          label="Confirmed bookings"
+          label={t('admin.dashboard.confirmedBookings')}
           value={confirmedBookingsQuery.data?.meta.total}
           isLoading={confirmedBookingsQuery.isLoading}
           isError={confirmedBookingsQuery.isError}

@@ -381,6 +381,10 @@ class GuestBookingControllerTest extends TestCase
     }
 
     // --- Court privacy across every guest endpoint (Step 12 amendment) ------
+    // None of the fixtures below are both booking_status=confirmed and
+    // payment_status=paid, so "never" holds for all of them. The one
+    // deliberate exception (confirmed + paid exposes court_name) is
+    // covered separately below.
 
     public function test_no_guest_response_leaks_court_information(): void
     {
@@ -395,6 +399,38 @@ class GuestBookingControllerTest extends TestCase
             $json = json_encode($response->json());
             $this->assertStringNotContainsString('court', $json);
         }
+    }
+
+    // --- Court name exception: confirmed + paid only -------------------
+
+    public function test_confirmed_and_paid_thawani_booking_exposes_the_court_name(): void
+    {
+        $booking = $this->paidThawaniBooking();
+        $court = $booking->bookingSlots->first()->court;
+
+        $response = $this->getJson("/api/bookings/{$booking->access_token}");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.slots.0.court_name', $court->name);
+        $json = json_encode($response->json());
+        $this->assertStringNotContainsString('court_id', $json);
+    }
+
+    public function test_confirmed_pay_at_venue_booking_only_exposes_the_court_name_once_marked_paid(): void
+    {
+        $pending = $this->payAtVenueBooking();
+        $pendingResponse = $this->getJson("/api/bookings/{$pending->access_token}");
+        $pendingResponse->assertJsonMissingPath('data.slots.0.court_name');
+
+        $paid = $this->bookingWith(
+            ['status' => 'confirmed', 'payment_method' => 'pay_at_venue'],
+            ['status' => 'confirmed'],
+            ['method' => 'pay_at_venue', 'status' => 'paid'],
+        );
+        $court = $paid->bookingSlots->first()->court;
+
+        $paidResponse = $this->getJson("/api/bookings/{$paid->access_token}");
+        $paidResponse->assertJsonPath('data.slots.0.court_name', $court->name);
     }
 
     // --- Rate limiting -----------------------------------------------------

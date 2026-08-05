@@ -2,6 +2,13 @@
 
 Run this alongside the `frontend` app (see `frontend/README.md`) for the full stack. Steps here get the API itself running; Step 16's integration notes below cover the two talking to each other correctly.
 
+### Requirements
+
+- PHP 8.2 or later, with the extensions Laravel 12 needs by default (`pdo_mysql`, `mbstring`, `openssl`, `curl`, `fileinfo`)
+- Composer 2.x
+- MySQL 8.x (or MariaDB 10.6+) — see `DB_CONNECTION`/`DB_*` in `.env.example`
+- Node.js `^20.19.0 || >=22.12.0` and npm (only needed here for the `composer setup` convenience script, which also builds the frontend — see `frontend/README.md` for frontend-only requirements)
+
 ### Setup
 
 ```bash
@@ -47,6 +54,24 @@ DB_DATABASE=padel_booking_test php artisan migrate:fresh --seed
 The frontend (`localhost:5173`) and this API (`localhost:8000`) are different origins with no dev proxy between them. `.env.example` already sets `SESSION_SAME_SITE=none` and `SESSION_SECURE_COOKIE=true`, which is required for the session/XSRF cookies to survive a cross-origin request at all — the framework's `Lax` default is silently dropped by the browser on cross-origin POST/PUT/DELETE. `Secure` works without HTTPS here because browsers treat `localhost`/`127.0.0.1` as secure contexts. If you deploy frontend and backend on the same origin later, this can revert to the framework default.
 
 `FRONTEND_URL` drives both CORS (`config/cors.php`) and, together with `SANCTUM_STATEFUL_DOMAINS`, which origins get stateful cookie auth. It accepts a comma-separated list if you need both `http://localhost:5173` and `http://127.0.0.1:5173`.
+
+### Payment testing (Thawani mock mode)
+
+This project has no real Thawani merchant account, so `.env.example` ships with `THAWANI_MODE=mock` (see `config/thawani.php`, enforced by `App\Http\Middleware\EnsureThawaniMockActive`). With mock mode on:
+
+- Choosing "Pay Online with Thawani" at checkout redirects to a local stand-in checkout page (`/mock-thawani/:sessionId` in the frontend, served by `Api\Customer\MockThawaniController`) instead of Thawani's real hosted UAT checkout.
+- That page's "Complete Payment" / "Cancel Payment" buttons simulate a successful or failed payment, applying the exact same status-transition logic (`PaymentService::applyVerifiedStatus`) a real Thawani webhook would trigger.
+- "Pay at Venue" bookings are unaffected either way — they're confirmed immediately and marked paid later from the admin panel (`Admin > Bookings > Mark as Paid`), never touching Thawani at all.
+
+To test against Thawani's real UAT sandbox instead, set `THAWANI_MODE=live` and fill in `THAWANI_SECRET_KEY`/`THAWANI_PUBLISHABLE_KEY` from your own Thawani merchant dashboard (Settings → Developers → Create Key) — never commit real keys.
+
+### Troubleshooting
+
+- **"CSRF token mismatch" / admin login silently fails**: usually a stale or missing session cookie. Confirm `FRONTEND_URL` and `SANCTUM_STATEFUL_DOMAINS` in `.env` list the exact origin the frontend is running on (including port), and that `SESSION_SAME_SITE=none` / `SESSION_SECURE_COOKIE=true` are set as shipped in `.env.example` — see the cross-origin cookie notes above.
+- **`SQLSTATE[HY000] [2002] ... refused it` on `migrate`**: MySQL isn't running, or `DB_HOST`/`DB_PORT`/`DB_DATABASE` in `.env` don't match a database you actually created — see Setup above.
+- **`php artisan test` fails with a missing-table/connection error**: the `padel_booking_test` database (see Tests above) doesn't exist yet, or `phpunit.xml`'s `DB_DATABASE` override doesn't match what you created.
+- **Booking stays "Pending" on Thawani checkout, or a payment hold never expires**: the scheduler (`php artisan schedule:work`) isn't running — see the Scheduler section above.
+- **Port already in use** (`8000` for `php artisan serve` or `5173` for the frontend): stop whatever else is bound to that port, or pass `--port=` to `artisan serve` (and update `FRONTEND_URL`/`VITE_API_BASE_URL` to match).
 
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 

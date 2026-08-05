@@ -15,9 +15,9 @@ class CourtController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
-        // Working hours deliberately not eager-loaded here — the list view
-        // is a summary; show() below loads the full detail.
-        $courts = Court::query()->orderBy('sort_order')->orderBy('id')->paginate(20);
+        // Working hours eager-loaded so the list view can show each court's
+        // saved operating hours without an extra request per card.
+        $courts = Court::query()->with('workingHours')->orderBy('sort_order')->orderBy('id')->paginate(20);
 
         return CourtResource::collection($courts);
     }

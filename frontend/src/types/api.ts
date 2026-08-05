@@ -68,6 +68,8 @@ export interface BookingSlotView {
   start_time: string
   end_time: string
   price_baisa: number
+  /** Only present once the booking is booking_status=confirmed and payment_status=paid. */
+  court_name?: string | null
 }
 
 /**

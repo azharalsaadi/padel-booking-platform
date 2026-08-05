@@ -73,3 +73,26 @@ export async function refreshPaymentStatus(accessToken: string): Promise<Booking
   )
   return response.data.data
 }
+
+export interface BookingPdfDownload {
+  blob: Blob
+  filename: string
+}
+
+const DEFAULT_PDF_FILENAME = 'booking.pdf'
+
+/** Filename comes from the server's own Content-Disposition header, matching whatever BookingPdfService actually generated. */
+function filenameFromContentDisposition(header: string | undefined): string {
+  const match = header?.match(/filename="?([^";]+)"?/)
+  return match?.[1] ?? DEFAULT_PDF_FILENAME
+}
+
+export async function downloadBookingPdf(accessToken: string): Promise<BookingPdfDownload> {
+  const response = await apiClient.get(`/bookings/${encodeURIComponent(accessToken)}/pdf`, {
+    responseType: 'blob',
+  })
+  return {
+    blob: response.data as Blob,
+    filename: filenameFromContentDisposition(response.headers['content-disposition']),
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
 
 interface PaginationProps {
@@ -12,6 +13,7 @@ interface PaginationProps {
  * large page counts this stays a fixed width instead of listing every page.
  */
 export function Pagination({ currentPage, totalPages, onPageChange, className = '' }: PaginationProps) {
+  const { t } = useTranslation()
   if (totalPages <= 1) return null
 
   const pages = visiblePages(currentPage, totalPages)
@@ -24,7 +26,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className = 
         disabled={currentPage <= 1}
         className="rounded-control px-3 py-1.5 text-sm text-text hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        Previous
+        {t('common.previous')}
       </button>
 
       {pages.map((page, index) =>
@@ -54,7 +56,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className = 
         disabled={currentPage >= totalPages}
         className="rounded-control px-3 py-1.5 text-sm text-text hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        Next
+        {t('common.next')}
       </button>
     </nav>
   )

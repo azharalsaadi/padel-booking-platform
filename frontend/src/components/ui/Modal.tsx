@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useId } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
 
 interface ModalProps {
@@ -22,6 +23,7 @@ const FOCUSABLE_SELECTOR =
  * behavior a plain conditionally-rendered <div> would otherwise skip.
  */
 export function Modal({ open, onClose, title, children, footer, className = '' }: ModalProps) {
+  const { t } = useTranslation()
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
   const previouslyFocused = useRef<HTMLElement | null>(null)
@@ -92,7 +94,7 @@ export function Modal({ open, onClose, title, children, footer, className = '' }
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close dialog"
+            aria-label={t('common.closeDialog')}
             className="rounded-control p-1 text-text-muted hover:bg-primary-50 hover:text-text"
           >
             <svg aria-hidden="true" viewBox="0 0 20 20" className="h-5 w-5" fill="none">

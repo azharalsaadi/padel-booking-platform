@@ -111,6 +111,25 @@ class AdminBookingControllerTest extends TestCase
         $response->assertJsonPath('data.0.id', $thawani->id);
     }
 
+    public function test_filters_by_payment_status(): void
+    {
+        $paid = $this->bookingWithSlot(['status' => 'confirmed'], [], ['status' => 'paid']);
+        $this->bookingWithSlot(['status' => 'pending_payment'], [], ['status' => 'pending']);
+
+        $response = $this->actingAs($this->admin(), 'admin')->getJson('/api/admin/bookings?payment_status=paid');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.id', $paid->id);
+    }
+
+    public function test_invalid_payment_status_filter_is_rejected(): void
+    {
+        $this->actingAs($this->admin(), 'admin')
+            ->getJson('/api/admin/bookings?payment_status=not_a_real_status')
+            ->assertStatus(422);
+    }
+
     public function test_filters_by_customer_phone(): void
     {
         $match = $this->bookingWithSlot(['status' => 'confirmed', 'customer_phone' => '+96891112222']);

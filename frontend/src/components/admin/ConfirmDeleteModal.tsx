@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 
@@ -19,8 +20,10 @@ export function ConfirmDeleteModal({
   isLoading = false,
   title,
   description,
-  confirmLabel = 'Delete',
+  confirmLabel,
 }: ConfirmDeleteModalProps) {
+  const { t } = useTranslation()
+
   return (
     <Modal
       open={open}
@@ -29,10 +32,10 @@ export function ConfirmDeleteModal({
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('admin.pricing.cancel')}
           </Button>
           <Button variant="danger" onClick={onConfirm} isLoading={isLoading}>
-            {confirmLabel}
+            {confirmLabel ?? t('admin.courts.delete')}
           </Button>
         </>
       }

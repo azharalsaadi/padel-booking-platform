@@ -40,16 +40,6 @@ describe('router — customer routes never require admin authentication', () => 
     expect(await screen.findByRole('heading', { name: 'Step 1 of 3: Select date and times' })).toBeInTheDocument()
   })
 
-  it('renders the guest lookup page at "/my-booking" regardless of admin session state', async () => {
-    mockedAdminApi.fetchAdminMe.mockRejectedValue(
-      Object.assign(new Error('unauth'), { isAxiosError: true, response: { status: 401, data: {} } }),
-    )
-    await act(() => router.navigate('/my-booking'))
-    render(<App />)
-
-    expect(await screen.findByRole('heading', { name: 'Manage Your Booking' })).toBeInTheDocument()
-  })
-
   it('renders the admin login page at "/admin/login" without a session redirect loop', async () => {
     mockedAdminApi.fetchAdminMe.mockRejectedValue(
       Object.assign(new Error('unauth'), { isAxiosError: true, response: { status: 401, data: {} } }),

@@ -112,6 +112,7 @@ export interface AdminBookingFilters {
   date_to?: string
   status?: BookingStatus
   payment_method?: PaymentMethod
+  payment_status?: PaymentStatus
   phone?: string
   reference?: string
   per_page?: number

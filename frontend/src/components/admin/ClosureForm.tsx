@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { RadioGroup } from '@/components/ui/RadioGroup'
 import { Input } from '@/components/ui/Input'
@@ -15,6 +16,7 @@ interface ClosureFormProps {
 }
 
 export function ClosureForm({ courts, onSubmit, isSubmitting, error }: ClosureFormProps) {
+  const { t } = useTranslation()
   const [scope, setScope] = useState<'all' | 'specific'>('all')
   const [selectedCourtIds, setSelectedCourtIds] = useState<number[]>([])
 
@@ -54,36 +56,36 @@ export function ClosureForm({ courts, onSubmit, isSubmitting, error }: ClosureFo
     setValidationError(null)
 
     if (scope === 'specific' && selectedCourtIds.length === 0) {
-      setValidationError('Select at least one court, or choose "All courts".')
+      setValidationError(t('admin.closures.selectAtLeastOneCourtError'))
       return
     }
 
     if (!isFullDay && endTime <= startTime) {
-      setValidationError('Closure end time must be after the start time.')
+      setValidationError(t('admin.closures.closureEndAfterStartError'))
       return
     }
 
     let dates: CreateClosurePayload['dates']
     if (datesMode === 'single') {
       if (!singleDate) {
-        setValidationError('Choose a date.')
+        setValidationError(t('admin.closures.chooseDateError'))
         return
       }
       dates = { mode: 'single', values: [singleDate] }
     } else if (datesMode === 'multiple') {
       const values = multipleDates.filter((date) => date !== '')
       if (values.length === 0) {
-        setValidationError('Add at least one date.')
+        setValidationError(t('admin.closures.addAtLeastOneDateError'))
         return
       }
       dates = { mode: 'multiple', values }
     } else {
       if (!rangeStart || !rangeEnd) {
-        setValidationError('Choose a start and end date for the range.')
+        setValidationError(t('admin.closures.chooseRangeError'))
         return
       }
       if (rangeEnd < rangeStart) {
-        setValidationError('The range end date must be on or after the start date.')
+        setValidationError(t('admin.closures.rangeEndError'))
         return
       }
       dates = { mode: 'range', range: { start: rangeStart, end: rangeEnd } }
@@ -102,18 +104,18 @@ export function ClosureForm({ courts, onSubmit, isSubmitting, error }: ClosureFo
   return (
     <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
       <RadioGroup
-        legend="Courts"
+        legend={t('admin.closures.courtsLegend')}
         value={scope}
         onChange={(value) => setScope(value as 'all' | 'specific')}
         options={[
-          { value: 'all', label: 'All courts', description: 'Applies to every court, including any added later.' },
-          { value: 'specific', label: 'Specific courts' },
+          { value: 'all', label: t('admin.closures.allCourtsOption'), description: t('admin.closures.allCourtsDescription') },
+          { value: 'specific', label: t('admin.closures.specificCourts') },
         ]}
       />
 
       {scope === 'specific' && (
         <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-medium text-text">Select courts</legend>
+          <legend className="text-sm font-medium text-text">{t('admin.closures.selectCourtsLegend')}</legend>
           {courts.map((court) => (
             <Checkbox
               key={court.id}
@@ -126,18 +128,18 @@ export function ClosureForm({ courts, onSubmit, isSubmitting, error }: ClosureFo
       )}
 
       <RadioGroup
-        legend="Dates"
+        legend={t('admin.closures.datesLegend')}
         value={datesMode}
         onChange={(value) => setDatesMode(value as ClosureDatesMode)}
         options={[
-          { value: 'single', label: 'One date' },
-          { value: 'multiple', label: 'Multiple dates', description: 'Pick several non-consecutive dates.' },
-          { value: 'range', label: 'Date range' },
+          { value: 'single', label: t('admin.closures.oneDate') },
+          { value: 'multiple', label: t('admin.closures.multipleDates'), description: t('admin.closures.multipleDatesDescription') },
+          { value: 'range', label: t('admin.closures.dateRange') },
         ]}
       />
 
       {datesMode === 'single' && (
-        <Input label="Date" type="date" value={singleDate} onChange={(event) => setSingleDate(event.target.value)} />
+        <Input label={t('admin.closures.date')} type="date" value={singleDate} onChange={(event) => setSingleDate(event.target.value)} />
       )}
 
       {datesMode === 'multiple' && (
@@ -145,7 +147,7 @@ export function ClosureForm({ courts, onSubmit, isSubmitting, error }: ClosureFo
           {multipleDates.map((date, index) => (
             <div key={index} className="flex items-end gap-2">
               <Input
-                label={`Date ${index + 1}`}
+                label={t('admin.closures.dateN', { n: index + 1 })}
                 hideLabel
                 type="date"
                 value={date}
@@ -153,14 +155,14 @@ export function ClosureForm({ courts, onSubmit, isSubmitting, error }: ClosureFo
               />
               {multipleDates.length > 1 && (
                 <Button type="button" variant="ghost" size="sm" onClick={() => removeDateField(index)}>
-                  Remove
+                  {t('admin.closures.remove')}
                 </Button>
               )}
             </div>
           ))}
           <div>
             <Button type="button" variant="secondary" size="sm" onClick={addDateField}>
-              Add another date
+              {t('admin.closures.addAnotherDate')}
             </Button>
           </div>
         </div>
@@ -168,17 +170,17 @@ export function ClosureForm({ courts, onSubmit, isSubmitting, error }: ClosureFo
 
       {datesMode === 'range' && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input label="Start date" type="date" value={rangeStart} onChange={(event) => setRangeStart(event.target.value)} />
-          <Input label="End date" type="date" value={rangeEnd} onChange={(event) => setRangeEnd(event.target.value)} />
+          <Input label={t('admin.closures.startDate')} type="date" value={rangeStart} onChange={(event) => setRangeStart(event.target.value)} />
+          <Input label={t('admin.closures.endDate')} type="date" value={rangeEnd} onChange={(event) => setRangeEnd(event.target.value)} />
         </div>
       )}
 
-      <Checkbox label="Full-day closure" checked={isFullDay} onChange={(event) => setIsFullDay(event.target.checked)} />
+      <Checkbox label={t('admin.closures.fullDayClosure')} checked={isFullDay} onChange={(event) => setIsFullDay(event.target.checked)} />
 
       {!isFullDay && (
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 text-sm font-medium text-text">
-            Start time
+            {t('admin.closures.startTime')}
             <input
               type="time"
               value={startTime}
@@ -187,7 +189,7 @@ export function ClosureForm({ courts, onSubmit, isSubmitting, error }: ClosureFo
             />
           </label>
           <label className="flex flex-col gap-1.5 text-sm font-medium text-text">
-            End time
+            {t('admin.closures.endTime')}
             <input
               type="time"
               value={endTime}
@@ -198,13 +200,13 @@ export function ClosureForm({ courts, onSubmit, isSubmitting, error }: ClosureFo
         </div>
       )}
 
-      <Input label="Reason (optional)" value={reason} onChange={(event) => setReason(event.target.value)} />
+      <Input label={t('admin.closures.reasonOptional')} value={reason} onChange={(event) => setReason(event.target.value)} />
 
       {(validationError || error) && <ErrorMessage message={validationError ?? error ?? ''} />}
 
       <div>
         <Button type="submit" isLoading={isSubmitting}>
-          Create closure
+          {t('admin.closures.createClosure')}
         </Button>
       </div>
     </form>

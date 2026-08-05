@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { Container } from '@/components/layout/Container'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -14,13 +16,14 @@ import { parseApiError } from '@/api/errors'
 import { formatBaisa } from '@/lib/money'
 import type { PricingRule, PricingRulePayload } from '@/types/admin'
 
-function describeHours(rule: PricingRule): string {
-  if (rule.hours_to === null) return `${rule.hours_from}+ hours`
-  if (rule.hours_from === rule.hours_to) return `${rule.hours_from} hour${rule.hours_from === 1 ? '' : 's'}`
-  return `${rule.hours_from}–${rule.hours_to} hours`
+function describeHours(rule: PricingRule, t: TFunction): string {
+  if (rule.hours_to === null) return t('admin.pricing.plusHoursSuffix', { count: rule.hours_from })
+  if (rule.hours_from === rule.hours_to) return t('admin.pricing.hourSuffix', { count: rule.hours_from })
+  return t('admin.pricing.hoursRange', { from: rule.hours_from, to: rule.hours_to })
 }
 
 export function PricingPage() {
+  const { t } = useTranslation()
   const { show } = useToast()
   const rulesQuery = usePricingRules()
   const createMutation = useCreatePricingRule()
@@ -36,7 +39,7 @@ export function PricingPage() {
     const mutation = editingRule ? updateMutation : createMutation
     mutation.mutate(payload, {
       onSuccess: () => {
-        show({ variant: 'success', title: editingRule ? 'Pricing rule updated' : 'Pricing rule added' })
+        show({ variant: 'success', title: editingRule ? t('admin.pricing.ruleUpdated') : t('admin.pricing.ruleAdded') })
         setEditingRule(undefined)
       },
       onError: (error) => setFormError(parseApiError(error).message),
@@ -48,11 +51,11 @@ export function PricingPage() {
     deleteMutation.mutate(deletingRule.id, {
       onSuccess: () => {
         setDeletingRule(null)
-        show({ variant: 'success', title: 'Pricing rule deleted' })
+        show({ variant: 'success', title: t('admin.pricing.ruleDeleted') })
       },
       onError: (error) => {
         setDeletingRule(null)
-        show({ variant: 'error', title: 'Could not delete pricing rule', description: parseApiError(error).message })
+        show({ variant: 'error', title: t('admin.pricing.couldNotDeleteRule'), description: parseApiError(error).message })
       },
     })
   }
@@ -60,19 +63,22 @@ export function PricingPage() {
   return (
     <Container className="flex flex-col gap-6 py-2">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-text">Pricing Rules</h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-text">{t('admin.pricing.title')}</h1>
+          <p className="mt-1 text-sm text-text-muted">{t('admin.pricing.description')}</p>
+        </div>
         <Button
           onClick={() => {
             setFormError(null)
             setEditingRule(null)
           }}
         >
-          Add rule
+          {t('admin.pricing.addRule')}
         </Button>
       </div>
 
       {rulesQuery.isLoading && (
-        <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading pricing rules">
+        <div className="flex flex-col gap-3" aria-busy="true" aria-label={t('admin.pricing.loadingRules')}>
           {Array.from({ length: 3 }, (_, index) => (
             <Skeleton key={index} className="h-16" />
           ))}
@@ -81,10 +87,10 @@ export function PricingPage() {
 
       {rulesQuery.isError && (
         <ErrorMessage
-          message="We couldn't load pricing rules."
+          message={t('admin.pricing.couldNotLoad')}
           action={
             <Button size="sm" onClick={() => rulesQuery.refetch()}>
-              Try again
+              {t('admin.pricing.tryAgain')}
             </Button>
           }
         />
@@ -92,7 +98,7 @@ export function PricingPage() {
 
       {rulesQuery.data && rulesQuery.data.length === 0 && (
         <Card>
-          <EmptyState title="No pricing rules" description="Add a rule to start charging for bookings." />
+          <EmptyState title={t('admin.pricing.noRulesTitle')} description={t('admin.pricing.noRulesDescription')} />
         </Card>
       )}
 
@@ -101,11 +107,13 @@ export function PricingPage() {
           {rulesQuery.data.map((rule) => (
             <Card key={rule.id} className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="font-medium text-text">{describeHours(rule)}</p>
-                <p className="text-sm text-text-muted">{formatBaisa(rule.price_per_hour_baisa)} / hour</p>
+                <p className="font-medium text-text">{describeHours(rule, t)}</p>
+                <p className="text-sm text-text-muted">
+                  {formatBaisa(rule.price_per_hour_baisa)} {t('admin.pricing.perHour')}
+                </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant={rule.is_active ? 'success' : 'neutral'}>{rule.is_active ? 'Active' : 'Inactive'}</Badge>
+                <Badge variant={rule.is_active ? 'success' : 'neutral'}>{rule.is_active ? t('admin.pricing.active') : t('admin.pricing.inactive')}</Badge>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -114,10 +122,10 @@ export function PricingPage() {
                     setEditingRule(rule)
                   }}
                 >
-                  Edit
+                  {t('admin.pricing.edit')}
                 </Button>
                 <Button size="sm" variant="danger" onClick={() => setDeletingRule(rule)}>
-                  Delete
+                  {t('admin.pricing.delete')}
                 </Button>
               </div>
             </Card>
@@ -139,8 +147,8 @@ export function PricingPage() {
         onClose={() => setDeletingRule(null)}
         onConfirm={handleDelete}
         isLoading={deleteMutation.isPending}
-        title="Delete this pricing rule?"
-        description="Future quotes will no longer use this tier."
+        title={t('admin.pricing.deleteModalTitle')}
+        description={t('admin.pricing.deleteModalDescription')}
       />
     </Container>
   )

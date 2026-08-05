@@ -129,4 +129,15 @@ class AvailabilityControllerTest extends TestCase
 
         $this->assertStringNotContainsString('court', strtolower($response->getContent()));
     }
+
+    public function test_availability_endpoint_is_rate_limited(): void
+    {
+        $date = $this->futureDate();
+
+        for ($i = 0; $i < 60; $i++) {
+            $this->getJson("/api/availability?date={$date}")->assertOk();
+        }
+
+        $this->getJson("/api/availability?date={$date}")->assertStatus(429);
+    }
 }

@@ -10,7 +10,6 @@ function renderHeader(route = '/') {
       <Routes>
         <Route path="/" element={<CustomerHeader />} />
         <Route path="/book" element={<CustomerHeader />} />
-        <Route path="/my-booking" element={<CustomerHeader />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -23,17 +22,16 @@ describe('CustomerHeader', () => {
     const nav = screen.getByRole('navigation', { name: 'Primary' })
     const labels = Array.from(nav.querySelectorAll('a')).map((link) => link.textContent)
 
-    expect(labels).toEqual(['Home', 'Book a Court', 'Offers', 'How to Book', 'My Bookings'])
+    expect(labels).toEqual(['Home', 'Book a Court', 'Offers', 'How to Book'])
     expect(screen.queryByRole('link', { name: /admin/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /log ?in/i })).not.toBeInTheDocument()
   })
 
-  it('Home, Book a Court, and My Bookings navigate to the correct routes', () => {
+  it('Home and Book a Court navigate to the correct routes', () => {
     renderHeader()
 
     expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
     expect(screen.getByRole('link', { name: 'Book a Court' })).toHaveAttribute('href', '/book')
-    expect(screen.getByRole('link', { name: 'My Bookings' })).toHaveAttribute('href', '/my-booking')
   })
 
   it('the RALLY wordmark links back to "/"', () => {
@@ -72,11 +70,6 @@ describe('CustomerHeader', () => {
     expect(screen.getByRole('link', { name: 'Book a Court' }).className).toContain('text-primary-700')
   })
 
-  it('marks My Bookings active on "/my-booking"', () => {
-    renderHeader('/my-booking')
-    expect(screen.getByRole('link', { name: 'My Bookings' }).className).toContain('text-primary-700')
-  })
-
   it('renders the desktop nav hidden below md, visible from md up (responsive check)', () => {
     renderHeader()
 
@@ -95,7 +88,7 @@ describe('CustomerHeader', () => {
     const navs = screen.getAllByRole('navigation', { name: 'Primary' })
     expect(navs).toHaveLength(2)
     const mobileNav = navs[1]
-    expect(within(mobileNav).getByRole('link', { name: 'My Bookings' })).toBeInTheDocument()
+    expect(within(mobileNav).getByRole('link', { name: 'Book a Court' })).toBeInTheDocument()
   })
 
   it('closes the mobile nav after a link is clicked', async () => {
@@ -103,7 +96,7 @@ describe('CustomerHeader', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Open main menu' }))
     const mobileNav = screen.getAllByRole('navigation', { name: 'Primary' })[1]
-    await userEvent.click(within(mobileNav).getByRole('link', { name: 'My Bookings' }))
+    await userEvent.click(within(mobileNav).getByRole('link', { name: 'Book a Court' }))
 
     expect(screen.getAllByRole('navigation', { name: 'Primary' })).toHaveLength(1)
   })

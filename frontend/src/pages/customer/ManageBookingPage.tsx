@@ -1,11 +1,13 @@
 import type { FormEvent, ReactNode } from 'react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   CalendarDays,
   Clock3,
   Download,
   Hourglass,
+  MapPin,
   RefreshCw,
   Ticket,
   X,
@@ -20,15 +22,17 @@ import { parseApiError } from '@/api/errors'
 import {
   useBookingByToken,
   useCancelBooking,
+  useDownloadBookingPdf,
   useRefreshPayment,
   useRetryPayment,
 } from '@/hooks/useGuestBooking'
 import { useToast } from '@/hooks/useToast'
 import { formatBaisa } from '@/lib/money'
+import type { TFunction } from 'i18next'
 
-function formatBookingDate(value?: string) {
+function formatBookingDate(value: string | undefined, locale: 'en' | 'ar', t: TFunction) {
   if (!value) {
-    return 'Date not available'
+    return t('manageBooking.dateNotAvailable')
   }
 
   const date = new Date(`${value}T00:00:00`)
@@ -37,7 +41,7 @@ function formatBookingDate(value?: string) {
     return value
   }
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -45,50 +49,57 @@ function formatBookingDate(value?: string) {
   }).format(date)
 }
 
-function formatBookingTime(value?: string) {
+function formatBookingTime(value: string | undefined, locale: 'en' | 'ar') {
   if (!value) {
     return ''
   }
 
   const [hours = '0', minutes = '0'] = value.split(':')
-  const date = new Date()
+  const isPm = Number(hours) >= 12
+  const displayHour = Number(hours) % 12 === 0 ? 12 : Number(hours) % 12
+  const period = locale === 'ar' ? (isPm ? 'م' : 'ص') : isPm ? 'PM' : 'AM'
 
-  date.setHours(Number(hours), Number(minutes), 0, 0)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date)
+  return `${displayHour}:${minutes} ${period}`
 }
 
 /** total_hours is the backend's own authoritative sum across every slot in the booking (BookingResource) — the only real duration field on BookingView. */
-function formatDuration(totalHours?: number) {
+function formatDuration(totalHours: number | undefined, t: TFunction) {
   if (typeof totalHours !== 'number' || !Number.isFinite(totalHours) || totalHours <= 0) {
-    return 'Not available'
+    return t('manageBooking.durationNotAvailable')
   }
 
-  if (totalHours < 1) {
-    return `${Math.round(totalHours * 60)} minutes`
-  }
-
-  return `${totalHours} ${totalHours === 1 ? 'hour' : 'hours'}`
+  return t('manageBooking.durationHours', { count: totalHours })
 }
 
 export function ManageBookingPage() {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language === 'ar' ? 'ar' : 'en'
   const { token = '' } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const { show } = useToast()
 
-  const bookingQuery = useBookingByToken(token)
+  // Pay at Venue payment is confirmed by an admin, out-of-band from this
+  // page — polling is the only way this customer sees "Paid" without a
+  // manual refresh. Re-evaluated after every fetch against the latest
+  // cached data, so it stops itself the moment payment_status flips to
+  // 'paid' (or the booking is cancelled/expired) without any extra state.
+  const bookingQuery = useBookingByToken(token, {
+    refetchInterval: (query) => {
+      const data = query.state.data
+      if (!data) return false
+
+      const isPayAtVenuePending = data.payment_method === 'pay_at_venue' && data.payment_status !== 'paid'
+      const isResolved = data.booking_status === 'cancelled' || data.booking_status === 'expired'
+
+      return isPayAtVenuePending && !isResolved ? 5000 : false
+    },
+  })
   const cancelMutation = useCancelBooking(token)
   const retryMutation = useRetryPayment(token)
   const refreshMutation = useRefreshPayment(token)
+  const downloadPdfMutation = useDownloadBookingPdf(token)
 
-  const [bookingSearch, setBookingSearch] = useState(token)
+  const [bookingSearch, setBookingSearch] = useState('')
 
   const [isCancelModalOpen, setIsCancelModalOpen] =
     useState(false)
@@ -120,7 +131,7 @@ export function ManageBookingPage() {
 
         show({
           variant: 'success',
-          title: 'Booking cancelled',
+          title: t('manageBooking.bookingCancelledToastTitle'),
         })
       },
 
@@ -138,7 +149,7 @@ export function ManageBookingPage() {
       onSuccess: () => {
         show({
           variant: 'success',
-          title: 'New payment link ready',
+          title: t('manageBooking.newPaymentLinkToastTitle'),
         })
       },
 
@@ -149,7 +160,7 @@ export function ManageBookingPage() {
 
         show({
           variant: 'error',
-          title: 'Could not start payment',
+          title: t('manageBooking.couldNotStartPaymentTitle'),
           description: parsed.message,
         })
       },
@@ -163,7 +174,7 @@ export function ManageBookingPage() {
       onSuccess: () => {
         show({
           variant: 'info',
-          title: 'Payment status updated',
+          title: t('manageBooking.paymentStatusUpdatedToastTitle'),
         })
       },
 
@@ -174,7 +185,7 @@ export function ManageBookingPage() {
 
         show({
           variant: 'error',
-          title: 'Could not refresh payment status',
+          title: t('manageBooking.couldNotRefreshStatusTitle'),
           description: parsed.message,
         })
       },
@@ -182,7 +193,25 @@ export function ManageBookingPage() {
   }
 
   function handleDownloadPdf() {
-    window.print()
+    downloadPdfMutation.mutate(undefined, {
+      onSuccess: ({ blob, filename }) => {
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      },
+      onError: (error) => {
+        show({
+          variant: 'error',
+          title: t('manageBooking.pdfDownloadFailedTitle'),
+          description: parseApiError(error).message,
+        })
+      },
+    })
   }
 
   if (bookingQuery.isLoading) {
@@ -205,12 +234,12 @@ export function ManageBookingPage() {
           <ErrorMessage
             title={
               notFound
-                ? 'Booking not found'
-                : 'Could not load your booking'
+                ? t('manageBooking.bookingNotFoundTitle')
+                : t('manageBooking.couldNotLoadTitle')
             }
             message={
               notFound
-                ? "We couldn't find a booking for this access code. Double-check the link and try again."
+                ? t('manageBooking.bookingNotFoundMessage')
                 : parsed.message
             }
             action={
@@ -219,7 +248,7 @@ export function ManageBookingPage() {
                   size="sm"
                   onClick={() => bookingQuery.refetch()}
                 >
-                  Try Again
+                  {t('manageBooking.tryAgain')}
                 </Button>
               )
             }
@@ -271,14 +300,16 @@ export function ManageBookingPage() {
   )
   const primarySlot = sortedSlots[0]
 
-  const formattedDate = formatBookingDate(primarySlot?.date)
+  const formattedDate = formatBookingDate(primarySlot?.date, locale, t)
 
   const formattedStartTime = formatBookingTime(
     primarySlot?.start_time,
+    locale,
   )
 
   const formattedEndTime = formatBookingTime(
     primarySlot?.end_time,
+    locale,
   )
 
   const timeRange =
@@ -286,12 +317,12 @@ export function ManageBookingPage() {
       ? `${formattedStartTime} – ${formattedEndTime}`
       : formattedStartTime ||
         formattedEndTime ||
-        'Time not available'
+        t('manageBooking.timeNotAvailable')
 
   // total_hours is the backend's own sum across every slot, so it stays
   // correct even for multi-slot bookings the single Date/Time row above
   // can't fully represent.
-  const duration = formatDuration(booking.total_hours)
+  const duration = formatDuration(booking.total_hours, t)
 
   const bookingReference =
     booking.booking_reference ?? token
@@ -302,38 +333,36 @@ export function ManageBookingPage() {
           booking.total_price_baisa,
           booking.currency ?? 'OMR',
         )
-      : 'OMR 0.000'
+      : t('errors.genericAmount')
 
   const paymentLabel = isPaid
-    ? 'Paid'
+    ? t('manageBooking.paid')
     : isFailed
-      ? 'Failed'
-      : 'Pending'
+      ? t('manageBooking.failed')
+      : t('manageBooking.pending')
 
   const bookingStatusLabel =
     isPaid && isConfirmed
-      ? 'Confirmed'
+      ? t('manageBooking.confirmed')
       : isFailed
-        ? 'Not Paid'
-        : 'Pending'
+        ? t('manageBooking.notPaid')
+        : t('manageBooking.pending')
 
   return (
     <Container className="flex flex-col items-center px-4 pb-16 pt-16 sm:pt-20 lg:pb-24 lg:pt-24">
       {/* Heading */}
       <header className="text-center">
         <h1 className="font-serif text-[46px] font-semibold leading-none tracking-[-0.04em] text-text sm:text-[58px]">
-          View Your Booking
+          {t('manageBooking.title')}
         </h1>
 
         {isPaid ? (
           <p className="mx-auto mt-6 max-w-[560px] text-[16px] leading-7 text-text-muted sm:text-[18px]">
-            View your booking details, payment status,
-            <br className="hidden sm:block" />
-            and download your booking confirmation.
+            {t('manageBooking.subtitlePaid')}
           </p>
         ) : (
           <p className="mx-auto mt-6 max-w-[520px] text-[16px] leading-7 text-text-muted sm:text-[18px]">
-            Review your booking details and payment status.
+            {t('manageBooking.subtitleDefault')}
           </p>
         )}
       </header>
@@ -352,7 +381,7 @@ export function ManageBookingPage() {
             />
 
             <span className="sr-only">
-              Booking reference
+              {t('manageBooking.bookingReferenceLabel')}
             </span>
 
             <input
@@ -361,7 +390,7 @@ export function ManageBookingPage() {
               onChange={(event) =>
                 setBookingSearch(event.target.value)
               }
-              placeholder="Enter Booking Reference"
+              placeholder={t('manageBooking.enterBookingReference')}
               className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-text outline-none placeholder:text-text-muted"
             />
           </label>
@@ -370,7 +399,7 @@ export function ManageBookingPage() {
             type="submit"
             className="h-[56px] rounded-[5px] bg-black px-8 text-[15px] font-semibold text-white transition hover:bg-[#292929]"
           >
-            View Booking
+            {t('manageBooking.viewBookingButton')}
           </button>
         </form>
       )}
@@ -383,13 +412,13 @@ export function ManageBookingPage() {
 
       {retryMutation.data?.checkout_url && (
         <div className="mt-6 w-full max-w-[720px] rounded-[8px] border border-border bg-white px-5 py-4 text-center text-sm text-text-muted">
-          Your new payment link is ready.{' '}
+          {t('manageBooking.newPaymentLinkReady')}{' '}
 
           <a
             href={retryMutation.data.checkout_url}
             className="font-semibold text-text underline underline-offset-4"
           >
-            Continue to Thawani
+            {t('manageBooking.continueToThawani')}
           </a>
         </div>
       )}
@@ -400,7 +429,7 @@ export function ManageBookingPage() {
           <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9a7555]">
-                Booking Summary
+                {t('manageBooking.bookingSummary')}
               </p>
 
               <p className="mt-4 font-serif text-[38px] font-semibold leading-none tracking-[-0.03em] text-text sm:text-[46px]">
@@ -438,25 +467,33 @@ export function ManageBookingPage() {
           <div className="divide-y divide-border">
             <BookingDetailRow
               icon={<Ticket className="h-5 w-5" />}
-              label="Booking Reference"
+              label={t('manageBooking.bookingReference')}
               value={bookingReference}
             />
 
+            {isPaid && isConfirmed && primarySlot?.court_name && (
+              <BookingDetailRow
+                icon={<MapPin className="h-5 w-5" />}
+                label={t('manageBooking.court')}
+                value={primarySlot.court_name}
+              />
+            )}
+
             <BookingDetailRow
               icon={<CalendarDays className="h-5 w-5" />}
-              label="Date"
+              label={t('manageBooking.date')}
               value={formattedDate}
             />
 
             <BookingDetailRow
               icon={<Clock3 className="h-5 w-5" />}
-              label="Time"
+              label={t('manageBooking.time')}
               value={timeRange}
             />
 
             <BookingDetailRow
               icon={<Hourglass className="h-5 w-5" />}
-              label="Duration"
+              label={t('manageBooking.duration')}
               value={duration}
             />
           </div>
@@ -483,7 +520,7 @@ export function ManageBookingPage() {
                 }`}
               />
 
-              Refresh Payment Status
+              {t('manageBooking.refreshPaymentStatus')}
             </button>
           )}
 
@@ -495,8 +532,8 @@ export function ManageBookingPage() {
               className="h-[50px] rounded-[5px] bg-black px-7 text-sm font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {retryMutation.isPending
-                ? 'Preparing Payment...'
-                : 'Retry Payment'}
+                ? t('manageBooking.preparingPayment')
+                : t('manageBooking.retryPayment')}
             </button>
           )}
 
@@ -514,7 +551,7 @@ export function ManageBookingPage() {
                 strokeWidth={2}
               />
 
-              Cancel Booking
+              {t('manageBooking.cancelBooking')}
             </button>
           )}
         </div>
@@ -525,22 +562,25 @@ export function ManageBookingPage() {
         <button
           type="button"
           onClick={handleDownloadPdf}
-          className="mt-10 flex h-[58px] w-full max-w-[720px] items-center justify-center gap-4 rounded-[5px] bg-black px-7 text-[16px] font-semibold text-white transition hover:bg-[#292929]"
+          disabled={downloadPdfMutation.isPending}
+          className="mt-10 flex h-[58px] w-full max-w-[720px] items-center justify-center gap-4 rounded-[5px] bg-black px-7 text-[16px] font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Download
             aria-hidden="true"
-            className="h-6 w-6"
+            className={`h-6 w-6 ${downloadPdfMutation.isPending ? 'animate-pulse' : ''}`}
             strokeWidth={1.9}
           />
 
-          Download Booking PDF
+          {downloadPdfMutation.isPending
+            ? t('manageBooking.preparingPdf')
+            : t('manageBooking.downloadBookingPdf')}
         </button>
       )}
 
       <Modal
         open={isCancelModalOpen}
         onClose={() => setIsCancelModalOpen(false)}
-        title="Cancel this booking?"
+        title={t('manageBooking.cancelModalTitle')}
         footer={
           <>
             <Button
@@ -549,7 +589,7 @@ export function ManageBookingPage() {
                 setIsCancelModalOpen(false)
               }
             >
-              Keep Booking
+              {t('manageBooking.keepBooking')}
             </Button>
 
             <Button
@@ -557,15 +597,13 @@ export function ManageBookingPage() {
               onClick={handleCancelConfirmed}
               isLoading={cancelMutation.isPending}
             >
-              Cancel Booking
+              {t('manageBooking.cancelBooking')}
             </Button>
           </>
         }
       >
         <p className="text-sm leading-6 text-text-muted">
-          This releases all your reserved times. This
-          cannot be undone, and no refund is issued
-          automatically.
+          {t('manageBooking.cancelModalBody')}
         </p>
       </Modal>
     </Container>

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { Container } from '@/components/layout/Container'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -14,24 +16,25 @@ import { useCourts } from '@/hooks/admin/useCourts'
 import { useAdminBookings } from '@/hooks/admin/useAdminBookings'
 import { formatBaisa } from '@/lib/money'
 import { formatDateLabel, formatTimeLabel } from '@/lib/datetime'
-import { BOOKING_STATUS_LABELS, BOOKING_STATUS_VARIANTS, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from '@/lib/status'
+import { getBookingStatusLabel, getPaymentStatusLabel, BOOKING_STATUS_VARIANTS, PAYMENT_STATUS_VARIANTS } from '@/lib/status'
 import type { AdminBooking, AdminBookingFilters as Filters } from '@/types/admin'
 
-function dateSummary(booking: AdminBooking): string {
+function dateSummary(booking: AdminBooking, t: TFunction): string {
   if (booking.slots.length === 0) return '—'
   const first = booking.slots[0]
   const label = `${formatDateLabel(first.date)}, ${formatTimeLabel(first.start_time)}`
-  return booking.slots.length === 1 ? label : `${label} (+${booking.slots.length - 1} more)`
+  return booking.slots.length === 1 ? label : `${label} ${t('admin.bookings.moreSuffix', { count: booking.slots.length - 1 })}`
 }
 
-function courtSummary(booking: AdminBooking): string {
+function courtSummary(booking: AdminBooking, t: TFunction): string {
   const names = [...new Set(booking.slots.map((slot) => slot.court_name).filter((name): name is string => Boolean(name)))]
   if (names.length === 0) return '—'
   if (names.length === 1) return names[0]
-  return `${names.length} courts`
+  return t('admin.bookings.courtsCount', { count: names.length })
 }
 
 export function BookingsPage() {
+  const { t } = useTranslation()
   const [filters, setFilters] = useState<Filters>({ per_page: 20, page: 1 })
   const courtsQuery = useCourts()
   const bookingsQuery = useAdminBookings(filters)
@@ -47,7 +50,10 @@ export function BookingsPage() {
 
   return (
     <Container className="flex flex-col gap-6 py-2">
-      <h1 className="text-2xl font-semibold text-text">Bookings</h1>
+      <div>
+        <h1 className="text-2xl font-semibold text-text">{t('admin.bookings.title')}</h1>
+        <p className="mt-1 text-sm text-text-muted">{t('admin.bookings.description')}</p>
+      </div>
 
       <Card>
         <AdminBookingFilters
@@ -59,7 +65,7 @@ export function BookingsPage() {
       </Card>
 
       {bookingsQuery.isLoading && (
-        <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading bookings">
+        <div className="flex flex-col gap-3" aria-busy="true" aria-label={t('admin.bookings.loadingBookings')}>
           {Array.from({ length: 4 }, (_, index) => (
             <Skeleton key={index} className="h-20" />
           ))}
@@ -68,10 +74,10 @@ export function BookingsPage() {
 
       {bookingsQuery.isError && (
         <ErrorMessage
-          message="We couldn't load bookings."
+          message={t('admin.bookings.couldNotLoad')}
           action={
             <Button size="sm" onClick={() => bookingsQuery.refetch()}>
-              Try again
+              {t('admin.bookings.tryAgain')}
             </Button>
           }
         />
@@ -79,7 +85,7 @@ export function BookingsPage() {
 
       {bookingsQuery.data && bookingsQuery.data.data.length === 0 && (
         <Card>
-          <EmptyState title="No bookings found" description="Try adjusting or clearing the filters above." />
+          <EmptyState title={t('admin.bookings.noBookingsTitle')} description={t('admin.bookings.noBookingsDescription')} />
         </Card>
       )}
 
@@ -90,14 +96,14 @@ export function BookingsPage() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableHeaderCell>Reference</TableHeaderCell>
-                  <TableHeaderCell>Customer</TableHeaderCell>
-                  <TableHeaderCell>Status</TableHeaderCell>
-                  <TableHeaderCell>Payment</TableHeaderCell>
-                  <TableHeaderCell>Total</TableHeaderCell>
-                  <TableHeaderCell>Dates &amp; times</TableHeaderCell>
-                  <TableHeaderCell>Court</TableHeaderCell>
-                  <TableHeaderCell>Actions</TableHeaderCell>
+                  <TableHeaderCell>{t('admin.bookings.tableReference')}</TableHeaderCell>
+                  <TableHeaderCell>{t('admin.bookings.tableCustomer')}</TableHeaderCell>
+                  <TableHeaderCell>{t('admin.bookings.tableStatus')}</TableHeaderCell>
+                  <TableHeaderCell>{t('admin.bookings.tablePayment')}</TableHeaderCell>
+                  <TableHeaderCell>{t('admin.bookings.tableTotal')}</TableHeaderCell>
+                  <TableHeaderCell>{t('admin.bookings.tableDatesAndTimes')}</TableHeaderCell>
+                  <TableHeaderCell>{t('admin.bookings.tableCourt')}</TableHeaderCell>
+                  <TableHeaderCell>{t('admin.bookings.tableActions')}</TableHeaderCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -109,22 +115,22 @@ export function BookingsPage() {
                       <span className="block text-text-muted">{booking.customer_phone}</span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={BOOKING_STATUS_VARIANTS[booking.booking_status]}>{BOOKING_STATUS_LABELS[booking.booking_status]}</Badge>
+                      <Badge variant={BOOKING_STATUS_VARIANTS[booking.booking_status]}>{getBookingStatusLabel(booking.booking_status, t)}</Badge>
                     </TableCell>
                     <TableCell>
-                      {booking.payment_method === 'thawani' ? 'Thawani' : 'Pay at Venue'}
+                      {booking.payment_method === 'thawani' ? t('admin.common.thawani') : t('admin.common.payAtVenue')}
                       {booking.payment_status && (
                         <Badge variant={PAYMENT_STATUS_VARIANTS[booking.payment_status]} className="ml-2">
-                          {PAYMENT_STATUS_LABELS[booking.payment_status]}
+                          {getPaymentStatusLabel(booking.payment_status, t)}
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>{formatBaisa(booking.total_price_baisa, booking.currency)}</TableCell>
-                    <TableCell>{dateSummary(booking)}</TableCell>
-                    <TableCell>{courtSummary(booking)}</TableCell>
+                    <TableCell>{dateSummary(booking, t)}</TableCell>
+                    <TableCell>{courtSummary(booking, t)}</TableCell>
                     <TableCell>
                       <Button size="sm" variant="secondary" onClick={() => navigate(`/admin/bookings/${booking.id}`)}>
-                        View Details
+                        {t('admin.bookings.viewDetails')}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -139,17 +145,19 @@ export function BookingsPage() {
               <Card key={booking.id} className="flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-semibold text-text">{booking.booking_reference}</p>
-                  <Badge variant={BOOKING_STATUS_VARIANTS[booking.booking_status]}>{BOOKING_STATUS_LABELS[booking.booking_status]}</Badge>
+                  <Badge variant={BOOKING_STATUS_VARIANTS[booking.booking_status]}>{getBookingStatusLabel(booking.booking_status, t)}</Badge>
                 </div>
                 <p className="text-sm text-text-muted">
-                  {booking.customer_name ?? 'Guest'} &middot; {booking.customer_phone}
+                  {booking.customer_name ?? t('admin.bookings.guest')} &middot; {booking.customer_phone}
                 </p>
-                <p className="text-sm text-text">{dateSummary(booking)}</p>
-                <p className="text-sm text-text-muted">Court: {courtSummary(booking)}</p>
+                <p className="text-sm text-text">{dateSummary(booking, t)}</p>
+                <p className="text-sm text-text-muted">
+                  {t('admin.bookings.tableCourt')}: {courtSummary(booking, t)}
+                </p>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-text">{formatBaisa(booking.total_price_baisa, booking.currency)}</span>
                   <Button size="sm" variant="secondary" onClick={() => navigate(`/admin/bookings/${booking.id}`)}>
-                    View Details
+                    {t('admin.bookings.viewDetails')}
                   </Button>
                 </div>
               </Card>

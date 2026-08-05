@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Lock, User } from 'lucide-react'
 import { Container } from '@/components/layout/Container'
 import { Card } from '@/components/ui/Card'
@@ -23,15 +24,9 @@ import type { AvailabilitySlot, PaymentMethod } from '@/types/api'
 
 type Step = 1 | 2 | 3
 
-const STEP_TITLES: Record<Step, string> = {
-  1: 'Select date and times',
-  2: 'Review your selection',
-  3: 'Your details and payment',
-}
-
-function StepIndicator({ step }: { step: Step }) {
+function StepIndicator({ step, ariaLabel }: { step: Step; ariaLabel: string }) {
   return (
-    <ol className="flex items-center gap-3" aria-label="Booking progress">
+    <ol className="flex items-center gap-3" aria-label={ariaLabel}>
       {([1, 2, 3] as Step[]).map((value) => (
         <li key={value} className="flex items-center gap-3">
           <span
@@ -55,6 +50,7 @@ function StepIndicator({ step }: { step: Step }) {
 }
 
 export function BookingPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>(1)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -63,6 +59,12 @@ export function BookingPage() {
   const [formErrors, setFormErrors] = useState<CustomerFormErrors>({})
   const [paymentMethodError, setPaymentMethodError] = useState<string | undefined>()
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const STEP_TITLES: Record<Step, string> = {
+    1: t('booking.stepTitle1'),
+    2: t('booking.stepTitle2'),
+    3: t('booking.stepTitle3'),
+  }
 
   const slots = useBookingCartStore((state) => state.slots)
   const addSlot = useBookingCartStore((state) => state.addSlot)
@@ -86,15 +88,15 @@ export function BookingPage() {
     const errors: CustomerFormErrors = {}
 
     if (!isValidOmaniPhone(customer.phone)) {
-      errors.phone = 'Enter a valid Omani phone number, e.g. +96891234567.'
+      errors.phone = t('booking.phoneRequiredError')
     }
     if (customer.email.trim() !== '' && !/^\S+@\S+\.\S+$/.test(customer.email.trim())) {
-      errors.email = 'Enter a valid email address.'
+      errors.email = t('booking.emailInvalidError')
     }
 
     const paymentValid = paymentMethod !== ''
     setFormErrors(errors)
-    setPaymentMethodError(paymentValid ? undefined : 'Choose a payment method.')
+    setPaymentMethodError(paymentValid ? undefined : t('booking.choosePaymentMethodError'))
 
     return Object.keys(errors).length === 0 && paymentValid
   }
@@ -142,32 +144,36 @@ export function BookingPage() {
     <Container className="flex flex-col gap-6 py-8">
       <header className="flex flex-col gap-4">
         <h1 className="font-serif text-3xl font-semibold text-text sm:text-4xl">
-          Step {step} of 3: {STEP_TITLES[step]}
+          {t('booking.stepHeading', { step, title: STEP_TITLES[step] })}
         </h1>
-        <StepIndicator step={step} />
+        <StepIndicator step={step} ariaLabel={t('booking.stepHeading', { step, title: STEP_TITLES[step] })} />
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="flex flex-col gap-6 lg:col-span-2">
+        {/* min-w-0: without it, a grid item's implicit min-width is its
+            content's intrinsic width — DateStrip's horizontally-scrolling
+            chip row would then force this whole column (and the page) to
+            grow instead of scrolling within its own overflow-x-auto box. */}
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
           {step === 1 && (
             <>
               <Card className="flex flex-col gap-4">
-                <h2 className="font-serif text-xl font-semibold text-text">Choose a date</h2>
+                <h2 className="font-serif text-xl font-semibold text-text">{t('booking.chooseDate')}</h2>
                 <DateStrip selectedDate={selectedDate} onSelectDate={setSelectedDate} />
               </Card>
 
               {selectedDate && (
                 <Card className="flex flex-col gap-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="font-serif text-xl font-semibold text-text">Available times</h2>
+                    <h2 className="font-serif text-xl font-semibold text-text">{t('booking.availableTimes')}</h2>
                     <div className="flex items-center gap-3 text-xs text-text-muted">
                       <span className="flex items-center gap-1.5">
                         <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-secondary-300" />
-                        Available
+                        {t('booking.available')}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-primary" />
-                        Selected
+                        {t('booking.selected')}
                       </span>
                     </div>
                   </div>
@@ -184,7 +190,7 @@ export function BookingPage() {
               )}
 
               <Card className="flex flex-col gap-4">
-                <h2 className="font-serif text-xl font-semibold text-text">Your Booking</h2>
+                <h2 className="font-serif text-xl font-semibold text-text">{t('booking.yourBooking')}</h2>
                 <SelectedSlotsList slots={slots} onRemove={removeSlot} />
               </Card>
             </>
@@ -194,8 +200,8 @@ export function BookingPage() {
             <>
               <Card className="flex flex-col gap-4">
                 <div>
-                  <p className="text-xs font-semibold tracking-wide text-text-muted uppercase">Selected slots</p>
-                  <h2 className="font-serif text-xl font-semibold text-text">Your Selected Sessions</h2>
+                  <p className="text-xs font-semibold tracking-wide text-text-muted uppercase">{t('booking.selectedSlotsEyebrow')}</p>
+                  <h2 className="font-serif text-xl font-semibold text-text">{t('booking.yourSelectedSessions')}</h2>
                 </div>
                 <SelectedSlotsReview
                   slots={slots}
@@ -211,11 +217,8 @@ export function BookingPage() {
                   <path d="M10 9v4.5M10 6.75h.01" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
                 </svg>
                 <div>
-                  <p className="font-semibold">Cancellation policy</p>
-                  <p className="mt-1 text-text-muted">
-                    Once confirmed, you can cancel this booking at any time before payment is settled online or the
-                    session begins. No refund is issued automatically.
-                  </p>
+                  <p className="font-semibold">{t('booking.cancellationPolicyTitle')}</p>
+                  <p className="mt-1 text-text-muted">{t('booking.cancellationPolicyBody')}</p>
                 </div>
               </div>
             </>
@@ -228,7 +231,7 @@ export function BookingPage() {
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-secondary-100 text-primary-700">
                     <User aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
                   </span>
-                  <h2 className="font-serif text-xl font-semibold text-text">Your details</h2>
+                  <h2 className="font-serif text-xl font-semibold text-text">{t('booking.yourDetails')}</h2>
                 </div>
                 <CustomerInfoForm values={customer} errors={formErrors} onChange={(patch) => setCustomer((c) => ({ ...c, ...patch }))} />
               </Card>
@@ -243,7 +246,7 @@ export function BookingPage() {
         <div className="lg:col-span-1">
           <Card className="sticky top-4 flex flex-col gap-4">
             <h2 className="font-serif text-xl font-semibold text-text">
-              {step === 2 ? 'Booking Summary' : 'Price summary'}
+              {step === 2 ? t('booking.bookingSummary') : t('booking.priceSummary')}
             </h2>
             <BookingSummary
               quote={quote.data}
@@ -255,7 +258,7 @@ export function BookingPage() {
             <div className="flex flex-col gap-2">
               {step > 1 && (
                 <Button variant="outline" onClick={() => setStep((s) => (s - 1) as Step)}>
-                  {step === 2 ? 'Back to selection' : 'Back'}
+                  {step === 2 ? t('booking.backToSelection') : t('common.back')}
                 </Button>
               )}
               {step < 3 && (
@@ -271,32 +274,32 @@ export function BookingPage() {
                     (step === 2 && (quote.isLoading || quote.isError || quote.data?.all_slots_available === false))
                   }
                 >
-                  {step === 2 ? 'Continue to payment' : 'Continue'}
+                  {step === 2 ? t('booking.continueToPayment') : t('common.continue')}
                 </Button>
               )}
               {step === 3 && (
                 <Button onClick={handleSubmit} isLoading={createBooking.isPending}>
-                  Complete booking
+                  {t('booking.completeBooking')}
                 </Button>
               )}
             </div>
 
             {step === 1 && (
               <p className="text-center text-xs font-medium tracking-wide text-text-muted uppercase">
-                Premium experience guaranteed
+                {t('booking.premiumExperienceGuaranteed')}
               </p>
             )}
             {(step === 2 || step === 3) && (
               <p className="flex items-center justify-center gap-1.5 text-center text-xs font-medium tracking-wide text-text-muted uppercase">
                 <Lock aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={1.5} />
-                {step === 2 ? 'Secure payment via Thawani' : 'Encrypted & secure payments'}
+                {step === 2 ? t('booking.secureViaThawani') : t('booking.encryptedSecurePayments')}
               </p>
             )}
           </Card>
 
           {step === 1 && (
             <p className="mt-4 text-center text-sm text-text-muted italic">
-              Need assistance? <span className="underline">Contact support</span>
+              {t('booking.needAssistance')} <span className="underline">{t('booking.contactSupport')}</span>
             </p>
           )}
         </div>

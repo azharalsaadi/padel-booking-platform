@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Checkbox } from '@/components/ui/Checkbox'
@@ -20,6 +21,7 @@ interface PricingRuleFormModalProps {
 
 /** OMR is what the admin types/sees; every payload sent to the API is integer baisa. */
 export function PricingRuleFormModal({ open, onClose, onSubmit, isSubmitting, error, rule }: PricingRuleFormModalProps) {
+  const { t } = useTranslation()
   const [hoursFrom, setHoursFrom] = useState('1')
   const [hasMaxHours, setHasMaxHours] = useState(false)
   const [hoursTo, setHoursTo] = useState('')
@@ -55,15 +57,15 @@ export function PricingRuleFormModal({ open, onClose, onSubmit, isSubmitting, er
     const parsedPrice = Number(priceOmr)
 
     if (!Number.isInteger(parsedFrom) || parsedFrom < 1) {
-      setValidationError('Hours from must be a whole number of at least 1.')
+      setValidationError(t('admin.pricing.hoursFromError'))
       return
     }
     if (hasMaxHours && (!Number.isInteger(parsedTo) || (parsedTo as number) < parsedFrom)) {
-      setValidationError('Hours to must be a whole number greater than or equal to hours from.')
+      setValidationError(t('admin.pricing.hoursToError'))
       return
     }
     if (!(parsedPrice > 0)) {
-      setValidationError('Price per hour must be greater than zero.')
+      setValidationError(t('admin.pricing.priceError'))
       return
     }
 
@@ -76,36 +78,36 @@ export function PricingRuleFormModal({ open, onClose, onSubmit, isSubmitting, er
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={rule ? 'Edit pricing rule' : 'Add pricing rule'}>
+    <Modal open={open} onClose={onClose} title={rule ? t('admin.pricing.editRuleModalTitle') : t('admin.pricing.addRuleModalTitle')}>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-        <Input label="Hours from" type="number" min={1} required value={hoursFrom} onChange={(event) => setHoursFrom(event.target.value)} />
+        <Input label={t('admin.pricing.hoursFrom')} type="number" min={1} required value={hoursFrom} onChange={(event) => setHoursFrom(event.target.value)} />
 
-        <Checkbox label="Has a maximum hour count" checked={hasMaxHours} onChange={(event) => setHasMaxHours(event.target.checked)} />
+        <Checkbox label={t('admin.pricing.hasMaxHours')} checked={hasMaxHours} onChange={(event) => setHasMaxHours(event.target.checked)} />
         {hasMaxHours && (
-          <Input label="Hours to" type="number" min={Number(hoursFrom) || 1} value={hoursTo} onChange={(event) => setHoursTo(event.target.value)} />
+          <Input label={t('admin.pricing.hoursTo')} type="number" min={Number(hoursFrom) || 1} value={hoursTo} onChange={(event) => setHoursTo(event.target.value)} />
         )}
 
         <Input
-          label="Price per hour (OMR)"
+          label={t('admin.pricing.pricePerHour')}
           type="number"
           min={0.001}
           step={0.001}
           required
           value={priceOmr}
           onChange={(event) => setPriceOmr(event.target.value)}
-          helperText="Stored as integer baisa (1 OMR = 1000 baisa)."
+          helperText={t('admin.pricing.priceHelper')}
         />
 
-        <Checkbox label="Active" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
+        <Checkbox label={t('admin.pricing.activeCheckbox')} checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
 
         {(validationError || error) && <ErrorMessage message={validationError ?? error ?? ''} />}
 
         <div className="flex justify-end gap-3">
           <Button type="button" variant="ghost" onClick={onClose}>
-            Cancel
+            {t('admin.pricing.cancel')}
           </Button>
           <Button type="submit" isLoading={isSubmitting}>
-            {rule ? 'Save changes' : 'Add rule'}
+            {rule ? t('admin.pricing.saveChanges') : t('admin.pricing.addRuleButton')}
           </Button>
         </div>
       </form>

@@ -14,8 +14,10 @@ use App\Http\Controllers\Api\Customer\MockThawaniController;
 use App\Http\Controllers\Webhooks\ThawaniWebhookController;
 use Illuminate\Support\Facades\Route;
 
-// Public, customer-facing — guests only, no authentication.
-Route::get('availability', [AvailabilityController::class, 'index']);
+// Public, customer-facing — guests only, no authentication. Read-only but
+// still rate limited (Step 17 follow-up): every request runs a real
+// availability query, so it's an open scripted-query surface otherwise.
+Route::middleware('throttle:availability')->get('availability', [AvailabilityController::class, 'index']);
 
 // Rate limited (Step 17): unlike a plain read, these can hold a real slot
 // (a Thawani booking reserves a court for THAWANI_HOLD_MINUTES), so
@@ -32,6 +34,7 @@ Route::middleware('throttle:guest-booking')->group(function () {
     Route::post('bookings/{accessToken}/cancel', [GuestBookingController::class, 'cancel']);
     Route::post('bookings/{accessToken}/retry-payment', [GuestBookingController::class, 'retryPayment']);
     Route::post('bookings/{accessToken}/refresh-payment', [GuestBookingController::class, 'refreshPayment']);
+    Route::get('bookings/{accessToken}/pdf', [GuestBookingController::class, 'downloadPdf']);
 });
 
 // Server-to-server — no auth (Thawani doesn't authenticate as our admin

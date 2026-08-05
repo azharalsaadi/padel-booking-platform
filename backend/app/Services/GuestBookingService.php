@@ -32,7 +32,7 @@ class GuestBookingService
     public function findByToken(string $accessToken): Booking
     {
         return Booking::where('access_token', $accessToken)
-            ->with(['bookingSlots', 'payments'])
+            ->with(['bookingSlots.court', 'payments'])
             ->firstOrFail();
     }
 

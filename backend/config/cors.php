@@ -24,7 +24,11 @@ return [
 
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => [],
+    // Content-Disposition isn't on the CORS "safelisted" response-header
+    // list, so without this the booking PDF download's filename is
+    // invisible to frontend JS (axios reads response.headers) even though
+    // the browser itself receives it fine — it must be explicitly exposed.
+    'exposed_headers' => ['Content-Disposition'],
 
     'max_age' => 0,
 

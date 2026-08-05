@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
 import { toLocalIsoDate } from '@/lib/datetime'
 
@@ -8,10 +9,11 @@ interface DateStripProps {
   daysAhead?: number
 }
 
-function shortLabel(date: Date): { weekday: string; day: string } {
+function shortLabel(date: Date, locale: 'en' | 'ar'): { weekday: string; day: string } {
+  const intlLocale = locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB'
   return {
-    weekday: date.toLocaleDateString('en-GB', { weekday: 'short' }),
-    day: date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+    weekday: date.toLocaleDateString(intlLocale, { weekday: 'short' }),
+    day: date.toLocaleDateString(intlLocale, { day: 'numeric', month: 'short' }),
   }
 }
 
@@ -22,6 +24,8 @@ function shortLabel(date: Date): { weekday: string; day: string } {
  * the visible strip, with the same min=today floor.
  */
 export function DateStrip({ selectedDate, onSelectDate, daysAhead = 14 }: DateStripProps) {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language === 'ar' ? 'ar' : 'en'
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -35,10 +39,10 @@ export function DateStrip({ selectedDate, onSelectDate, daysAhead = 14 }: DateSt
 
   return (
     <div className="flex flex-col gap-3">
-      <div role="group" aria-label="Select a date" className="flex gap-2 overflow-x-auto pb-1">
+      <div role="group" aria-label={t('booking.selectADate')} className="flex gap-2 overflow-x-auto pb-1">
         {days.map((date) => {
           const iso = toLocalIsoDate(date)
-          const { weekday, day } = shortLabel(date)
+          const { weekday, day } = shortLabel(date, locale)
           const isSelected = selectedDate === iso
 
           return (
@@ -54,7 +58,7 @@ export function DateStrip({ selectedDate, onSelectDate, daysAhead = 14 }: DateSt
                   : 'border-border bg-surface text-text hover:border-primary-300',
               )}
             >
-              <span className="text-xs font-semibold tracking-wide uppercase opacity-70">{iso === todayIso ? 'Today' : weekday}</span>
+              <span className="text-xs font-semibold tracking-wide uppercase opacity-70">{iso === todayIso ? t('booking.today') : weekday}</span>
               <span className="font-serif text-xl font-semibold">{day}</span>
               <span className="text-xs font-medium tracking-wide uppercase opacity-60">{weekday}</span>
             </button>
@@ -63,7 +67,7 @@ export function DateStrip({ selectedDate, onSelectDate, daysAhead = 14 }: DateSt
       </div>
 
       <label htmlFor="booking-date-picker" className="text-xs font-semibold tracking-wide text-text-muted uppercase">
-        Or pick any date
+        {t('booking.orPickAnyDate')}
         <input
           id="booking-date-picker"
           type="date"

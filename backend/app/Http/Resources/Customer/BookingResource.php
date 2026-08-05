@@ -4,13 +4,16 @@ namespace App\Http\Resources\Customer;
 
 use App\Enums\BookingStatus;
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Whitelists exactly the customer-safe booking fields. Court identity is
- * never referenced here — booking_slots.court_id is loaded on the model
- * but deliberately never touched by this resource.
+ * withheld everywhere except one deliberate exception: each slot's
+ * court_name is included only once the booking is fully confirmed and
+ * paid (see Court model docblock) — never the court id, and never for
+ * pending/failed/cancelled/expired bookings.
  */
 class BookingResource extends JsonResource
 {
@@ -19,7 +22,8 @@ class BookingResource extends JsonResource
      * it once, at booking creation, to save it — but it must never appear
      * again in lookup/cancel/retry/refresh responses, which already
      * identify the booking via the token the guest supplied. False by
-     * default; BookingController::store() is the only caller that opts in.
+     * default; BookingController::store() and MockThawaniController's
+     * succeed()/fail() (mock-mode only) are the only callers that opt in.
      */
     private bool $includeAccessToken = false;
 
@@ -34,6 +38,7 @@ class BookingResource extends JsonResource
     {
         $payment = $this->payments->sortByDesc('id')->first();
         $isThawani = $this->payment_method === PaymentMethod::Thawani;
+        $isConfirmedAndPaid = $this->status === BookingStatus::Confirmed && $payment?->status === PaymentStatus::Paid;
 
         return [
             'booking_reference' => $this->booking_reference,
@@ -59,6 +64,12 @@ class BookingResource extends JsonResource
             'customer_name' => $this->customer_name,
             'customer_email' => $this->customer_email,
             'notes' => $this->notes,
+            // Built with array spread rather than $this->when(): the
+            // MissingValue sentinel that when() relies on is only filtered
+            // out of a plain array by JsonResource's automatic recursion,
+            // and this ->map() result stays a Collection (not cast to a
+            // plain array) — spread guarantees court_name is genuinely
+            // absent from the JSON rather than leaking as an empty value.
             'slots' => $this->bookingSlots
                 ->sortBy([['date', 'asc'], ['start_time', 'asc']])
                 ->values()
@@ -67,6 +78,7 @@ class BookingResource extends JsonResource
                     'start_time' => substr($slot->start_time, 0, 5),
                     'end_time' => substr($slot->end_time, 0, 5),
                     'price_baisa' => $slot->price_baisa,
+                    ...($isConfirmedAndPaid ? ['court_name' => $slot->court?->name] : []),
                 ]),
         ];
     }

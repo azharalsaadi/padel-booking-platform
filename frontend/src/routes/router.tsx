@@ -6,7 +6,6 @@ import { BookingSuccessPage } from '@/pages/customer/BookingSuccessPage'
 import { ProcessingPage } from '@/pages/customer/ProcessingPage'
 import { PaymentFailedPage } from '@/pages/customer/PaymentFailedPage'
 import { ManageBookingPage } from '@/pages/customer/ManageBookingPage'
-import { LookupPage } from '@/pages/customer/LookupPage'
 import { MockThawaniCheckoutPage } from '@/pages/customer/MockThawaniCheckoutPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
@@ -30,7 +29,6 @@ export const router = createBrowserRouter([
   // Customer-facing routes
   { path: '/', element: <CustomerShell><LandingPage /></CustomerShell> },
   { path: '/book', element: <CustomerShell><BookingPage /></CustomerShell> },
-  { path: '/my-booking', element: <CustomerShell><LookupPage /></CustomerShell> },
   // Reached only via router state right after booking creation — see
   // BookingSuccessPage's docblock for why this replaced a bookmarkable
   // /booking/:token/confirmation route.

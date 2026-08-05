@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
 import { ToastContext } from '@/components/ui/toastContext'
 import type { ToastItem } from '@/components/ui/toastContext'
@@ -15,6 +16,7 @@ const variantClasses: Record<ToastItem['variant'], string> = {
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const nextId = useRef(0)
 
@@ -58,7 +60,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 onClick={() => dismiss(toast.id)}
-                aria-label="Dismiss notification"
+                aria-label={t('common.dismissNotification')}
                 className="shrink-0 rounded-control p-1 hover:bg-black/5"
               >
                 <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4" fill="none">

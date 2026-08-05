@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { SelectedSlot } from '@/types/api'
 import { formatDateLabel, formatTimeLabel } from '@/lib/datetime'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -22,8 +23,11 @@ function CalendarIcon() {
  * own date, so a separate heading would just repeat it.
  */
 export function SelectedSlotsList({ slots, onRemove }: SelectedSlotsListProps) {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language === 'ar' ? 'ar' : 'en'
+
   if (slots.length === 0) {
-    return <EmptyState title="No times selected yet" description="Choose a date and time above to add it here." />
+    return <EmptyState title={t('booking.noTimesSelectedTitle')} description={t('booking.noTimesSelectedDescription')} />
   }
 
   const sorted = [...slots].sort((a, b) => (a.date === b.date ? a.start_time.localeCompare(b.start_time) : a.date.localeCompare(b.date)))
@@ -37,16 +41,16 @@ export function SelectedSlotsList({ slots, onRemove }: SelectedSlotsListProps) {
               <CalendarIcon />
             </span>
             <div>
-              <p className="text-xs font-semibold tracking-wide text-primary-700 uppercase">{formatDateLabel(slot.date)}</p>
+              <p className="text-xs font-semibold tracking-wide text-primary-700 uppercase">{formatDateLabel(slot.date, locale)}</p>
               <p className="text-sm font-semibold text-text">
-                {formatTimeLabel(slot.start_time)} &ndash; {formatTimeLabel(slot.end_time)}
+                {formatTimeLabel(slot.start_time, locale)} &ndash; {formatTimeLabel(slot.end_time, locale)}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => onRemove(slot)}
-            aria-label={`Remove ${formatDateLabel(slot.date)} at ${formatTimeLabel(slot.start_time)}`}
+            aria-label={t('booking.removeAt', { date: formatDateLabel(slot.date, locale), time: formatTimeLabel(slot.start_time, locale) })}
             className="rounded-control p-2 text-text-muted hover:bg-danger-50 hover:text-danger"
           >
             <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4" fill="none">

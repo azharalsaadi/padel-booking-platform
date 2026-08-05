@@ -43,6 +43,14 @@ class AdminBookingController extends Controller
                 fn ($query, $method) => $query->where('payment_method', $method)
             )
             ->when(
+                $filters['payment_status'] ?? null,
+                // Each booking carries exactly one payment record, mutated in
+                // place as its status changes (see PaymentService), so this
+                // matches the same "current" payment status AdminBookingResource
+                // exposes — never a stale prior attempt.
+                fn ($query, $status) => $query->whereHas('payments', fn ($q) => $q->where('status', $status))
+            )
+            ->when(
                 $filters['phone'] ?? null,
                 fn ($query, $phone) => $query->where('customer_phone', 'like', "%{$phone}%")
             )

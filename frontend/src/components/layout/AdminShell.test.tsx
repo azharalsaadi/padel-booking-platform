@@ -16,7 +16,7 @@ mockedApi.fetchAdminMe.mockResolvedValue({
 })
 
 describe('AdminShell', () => {
-  it('renders the sidebar nav links and the page content', () => {
+  it('renders the horizontal nav links and the page content', () => {
     renderWithProviders(
       <AdminShell>
         <p>Bookings table</p>
@@ -31,19 +31,18 @@ describe('AdminShell', () => {
     expect(screen.getByText('Bookings table')).toBeInTheDocument()
   })
 
-  it('collapses the sidebar off-canvas on mobile until the header toggle is pressed (responsive check)', async () => {
+  it('collapses the nav off-canvas on mobile until the header toggle is pressed (responsive check)', async () => {
     renderWithProviders(
       <AdminShell>
         <p>Content</p>
       </AdminShell>,
     )
 
-    const sidebar = screen.getByRole('link', { name: 'Bookings' }).closest('aside')
-    expect(sidebar?.className).toContain('hidden')
+    expect(screen.getAllByRole('link', { name: 'Bookings' })).toHaveLength(1)
 
     await userEvent.click(screen.getByRole('button', { name: 'Open admin navigation' }))
 
-    expect(sidebar?.className).not.toContain('hidden')
+    expect(screen.getAllByRole('link', { name: 'Bookings' })).toHaveLength(2)
   })
 
   it('shows the signed-in admin name and a working logout button', async () => {

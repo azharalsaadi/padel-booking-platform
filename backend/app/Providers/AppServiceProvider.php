@@ -46,6 +46,13 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($key);
         });
 
+        // Read-only, but every request still runs a real availability
+        // query — generous enough for a customer clicking through the date
+        // strip, tight enough to blunt scripted polling.
+        RateLimiter::for('availability', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
+
         // Guest booking-lookup/cancel/retry/refresh endpoints (Step 12) are
         // public and keyed only by access_token in the URL — rate limit by
         // IP to blunt token-guessing/brute-force attempts.

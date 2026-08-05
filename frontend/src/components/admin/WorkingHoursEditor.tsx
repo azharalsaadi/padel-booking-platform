@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import type { CourtWorkingHourEntry } from '@/types/admin'
 
-const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const DAY_KEYS = ['day_0', 'day_1', 'day_2', 'day_3', 'day_4', 'day_5', 'day_6'] as const
 
 interface DayRow {
   dayOfWeek: number
@@ -15,7 +16,7 @@ interface DayRow {
 }
 
 function buildInitialRows(workingHours: CourtWorkingHourEntry[]): DayRow[] {
-  return DAY_LABELS.map((_, dayOfWeek) => {
+  return DAY_KEYS.map((_, dayOfWeek) => {
     const existing = workingHours.find((entry) => entry.day_of_week === dayOfWeek)
     return {
       dayOfWeek,
@@ -46,6 +47,7 @@ interface WorkingHoursEditorProps {
  * weekday means the court is closed that day.
  */
 export function WorkingHoursEditor({ workingHours, onSave, isSaving }: WorkingHoursEditorProps) {
+  const { t } = useTranslation()
   const [savedRows, setSavedRows] = useState<DayRow[]>(() => buildInitialRows(workingHours))
   const [rows, setRows] = useState<DayRow[]>(() => buildInitialRows(workingHours))
 
@@ -67,7 +69,7 @@ export function WorkingHoursEditor({ workingHours, onSave, isSaving }: WorkingHo
   function handleSave() {
     const validated = rows.map((row) => {
       if (row.enabled && row.closeTime <= row.openTime) {
-        return { ...row, error: 'Close time must be after open time.' }
+        return { ...row, error: t('admin.workingHours.closeTimeError') }
       }
       return { ...row, error: undefined }
     })
@@ -87,11 +89,11 @@ export function WorkingHoursEditor({ workingHours, onSave, isSaving }: WorkingHo
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-text">Working hours</h2>
+        <h2 className="text-lg font-semibold text-text">{t('admin.workingHours.title')}</h2>
         {isDirty ? (
-          <Badge variant="warning">Unsaved changes</Badge>
+          <Badge variant="warning">{t('admin.workingHours.unsavedChanges')}</Badge>
         ) : (
-          <Badge variant="success">Saved</Badge>
+          <Badge variant="success">{t('admin.workingHours.saved')}</Badge>
         )}
       </div>
 
@@ -100,7 +102,7 @@ export function WorkingHoursEditor({ workingHours, onSave, isSaving }: WorkingHo
           <div key={row.dayOfWeek} className="flex flex-col gap-2 rounded-control border border-border p-3 sm:flex-row sm:items-center sm:gap-4">
             <div className="sm:w-40">
               <Checkbox
-                label={DAY_LABELS[row.dayOfWeek]}
+                label={t(`admin.workingHours.${DAY_KEYS[row.dayOfWeek]}`)}
                 checked={row.enabled}
                 onChange={(event) => updateRow(row.dayOfWeek, { enabled: event.target.checked })}
               />
@@ -109,7 +111,7 @@ export function WorkingHoursEditor({ workingHours, onSave, isSaving }: WorkingHo
             {row.enabled ? (
               <div className="flex flex-1 flex-wrap items-start gap-3">
                 <label className="flex flex-col gap-1 text-sm text-text-muted">
-                  Open
+                  {t('admin.workingHours.open')}
                   <input
                     type="time"
                     value={row.openTime}
@@ -118,7 +120,7 @@ export function WorkingHoursEditor({ workingHours, onSave, isSaving }: WorkingHo
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm text-text-muted">
-                  Close
+                  {t('admin.workingHours.close')}
                   <input
                     type="time"
                     value={row.closeTime}
@@ -133,7 +135,7 @@ export function WorkingHoursEditor({ workingHours, onSave, isSaving }: WorkingHo
                 )}
               </div>
             ) : (
-              <p className="text-sm text-text-muted">Closed</p>
+              <p className="text-sm text-text-muted">{t('admin.workingHours.closed')}</p>
             )}
           </div>
         ))}
@@ -141,7 +143,7 @@ export function WorkingHoursEditor({ workingHours, onSave, isSaving }: WorkingHo
 
       <div>
         <Button onClick={handleSave} isLoading={isSaving} disabled={!isDirty}>
-          Save working hours
+          {t('admin.workingHours.saveButton')}
         </Button>
       </div>
     </div>

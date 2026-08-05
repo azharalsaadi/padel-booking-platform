@@ -59,6 +59,15 @@ describe('ManageBookingPage — lookup', () => {
     expect(document.body.textContent).not.toContain(TOKEN)
     expect(document.body.textContent?.toLowerCase()).not.toContain('court')
   })
+
+  it('starts the booking-reference search field empty, never pre-filled with the URL access token', async () => {
+    mockedApi.fetchBookingByToken.mockResolvedValue({ ...confirmedPayAtVenue, payment_status: 'paid' })
+    renderManagePage()
+
+    const searchInput = await screen.findByPlaceholderText('Enter Booking Reference')
+    expect(searchInput).toHaveValue('')
+    expect(document.body.textContent).not.toContain(TOKEN)
+  })
 })
 
 describe('ManageBookingPage — cancellation', () => {
@@ -166,5 +175,172 @@ describe('ManageBookingPage — Thawani payment retry and refresh', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Refresh payment status' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/temporarily unavailable/i)
+  })
+})
+
+describe('ManageBookingPage — court row (confirmed + paid only)', () => {
+  const confirmedAndPaid: BookingView = {
+    ...confirmedPayAtVenue,
+    payment_status: 'paid',
+    slots: [{ ...confirmedPayAtVenue.slots[0], court_name: 'Court 2' }],
+  }
+
+  it('shows the real court name once the booking is confirmed and paid', async () => {
+    mockedApi.fetchBookingByToken.mockResolvedValue(confirmedAndPaid)
+    renderManagePage()
+
+    await screen.findByText('BK-20260810-000001')
+    expect(screen.getByText('Court')).toBeInTheDocument()
+    expect(screen.getByText('Court 2')).toBeInTheDocument()
+  })
+
+  it('does not show a court row while the booking is still pending payment', async () => {
+    mockedApi.fetchBookingByToken.mockResolvedValue({
+      ...confirmedAndPaid,
+      payment_status: 'pending',
+    })
+    renderManagePage()
+
+    await screen.findByText('BK-20260810-000001')
+    expect(document.body.textContent?.toLowerCase()).not.toContain('court')
+  })
+})
+
+describe('ManageBookingPage — download booking PDF', () => {
+  const paidBooking: BookingView = { ...confirmedPayAtVenue, payment_status: 'paid' }
+  const originalCreateObjectURL = URL.createObjectURL
+  const originalRevokeObjectURL = URL.revokeObjectURL
+
+  beforeEach(() => {
+    mockedApi.fetchBookingByToken.mockResolvedValue(paidBooking)
+    URL.createObjectURL = vi.fn(() => 'blob:mock-pdf-url')
+    URL.revokeObjectURL = vi.fn()
+  })
+
+  afterEach(() => {
+    URL.createObjectURL = originalCreateObjectURL
+    URL.revokeObjectURL = originalRevokeObjectURL
+  })
+
+  it('downloads the PDF returned by the API without navigating to a blank page', async () => {
+    const blob = new Blob(['%PDF-1.4'], { type: 'application/pdf' })
+    mockedApi.downloadBookingPdf.mockResolvedValue({ blob, filename: 'booking-BK-20260810-000001.pdf' })
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    renderManagePage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Download Booking PDF' }))
+
+    await waitFor(() => expect(mockedApi.downloadBookingPdf).toHaveBeenCalledWith(TOKEN))
+    expect(clickSpy).toHaveBeenCalled()
+    expect(URL.createObjectURL).toHaveBeenCalledWith(blob)
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-pdf-url')
+
+    clickSpy.mockRestore()
+  })
+
+  it('shows a loading state while the PDF is being prepared', async () => {
+    mockedApi.downloadBookingPdf.mockImplementation(() => new Promise(() => {}))
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    renderManagePage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Download Booking PDF' }))
+
+    expect(await screen.findByRole('button', { name: 'Preparing PDF...' })).toBeDisabled()
+  })
+
+  it('shows an error toast when the download fails', async () => {
+    mockedApi.downloadBookingPdf.mockRejectedValue(
+      Object.assign(new Error('server error'), {
+        isAxiosError: true,
+        response: { status: 500, data: {} },
+      }),
+    )
+
+    renderManagePage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Download Booking PDF' }))
+
+    expect(await screen.findByText('Could not download PDF')).toBeInTheDocument()
+  })
+})
+
+describe('ManageBookingPage — automatic payment status polling (Pay at Venue)', () => {
+  beforeEach(() => {
+    // shouldAdvanceTime bridges fake and real time so Testing Library's own
+    // internal (setTimeout-based) polling in findBy*/waitFor keeps working
+    // while vi.advanceTimersByTimeAsync drives the 5s refetchInterval ticks.
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    mockedApi.fetchBookingByToken.mockReset()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('polls every 5 seconds and flips Pending to Paid automatically once the admin marks it paid', async () => {
+    mockedApi.fetchBookingByToken
+      .mockResolvedValueOnce(confirmedPayAtVenue)
+      .mockResolvedValueOnce(confirmedPayAtVenue)
+      .mockResolvedValueOnce({ ...confirmedPayAtVenue, payment_status: 'paid' })
+
+    renderManagePage()
+
+    // Both the payment badge and the booking-status badge read "Pending"
+    // before payment is confirmed (see bookingStatusLabel) — assert on the
+    // count rather than a single ambiguous match.
+    expect(await screen.findAllByText('Pending')).toHaveLength(2)
+    expect(mockedApi.fetchBookingByToken).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(mockedApi.fetchBookingByToken).toHaveBeenCalledTimes(2)
+    expect(await screen.findAllByText('Pending')).toHaveLength(2)
+
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(await screen.findByText('Paid')).toBeInTheDocument()
+    expect(mockedApi.fetchBookingByToken).toHaveBeenCalledTimes(3)
+    expect(screen.queryByText('Pending')).not.toBeInTheDocument()
+  })
+
+  it('stops polling once the booking is already paid', async () => {
+    mockedApi.fetchBookingByToken.mockResolvedValue({ ...confirmedPayAtVenue, payment_status: 'paid' })
+
+    renderManagePage()
+    expect(await screen.findByText('Paid')).toBeInTheDocument()
+    const callsSoFar = mockedApi.fetchBookingByToken.mock.calls.length
+
+    await vi.advanceTimersByTimeAsync(15000)
+
+    expect(mockedApi.fetchBookingByToken).toHaveBeenCalledTimes(callsSoFar)
+  })
+
+  it('stops polling once the booking is cancelled', async () => {
+    mockedApi.fetchBookingByToken.mockResolvedValue({
+      ...confirmedPayAtVenue,
+      booking_status: 'cancelled',
+      payment_status: 'pending',
+    })
+
+    renderManagePage()
+    expect(await screen.findByText('BK-20260810-000001')).toBeInTheDocument()
+    const callsSoFar = mockedApi.fetchBookingByToken.mock.calls.length
+
+    await vi.advanceTimersByTimeAsync(15000)
+
+    expect(mockedApi.fetchBookingByToken).toHaveBeenCalledTimes(callsSoFar)
+  })
+
+  it('does not poll Thawani bookings', async () => {
+    mockedApi.fetchBookingByToken.mockResolvedValue({
+      ...confirmedPayAtVenue,
+      payment_method: 'thawani',
+      payment_status: 'pending',
+    })
+
+    renderManagePage()
+    expect(await screen.findByText('BK-20260810-000001')).toBeInTheDocument()
+    const callsSoFar = mockedApi.fetchBookingByToken.mock.calls.length
+
+    await vi.advanceTimersByTimeAsync(15000)
+
+    expect(mockedApi.fetchBookingByToken).toHaveBeenCalledTimes(callsSoFar)
   })
 })
