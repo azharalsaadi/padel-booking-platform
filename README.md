@@ -267,4 +267,5 @@ This project is prepared for a public GitHub repository. Before pushing:
 
 ## Live demo
 
-_No live demo is currently deployed. This section is a placeholder — add a link here once the project is hosted._
+Live Demo:
+https://angelic-empathy-production-ca3a.up.railway.app
