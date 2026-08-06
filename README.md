@@ -172,6 +172,8 @@ Seeders run in this order (see [`backend/database/seeders/DatabaseSeeder.php`](b
 
 ## Admin login
 
+Live demo admin panel: [https://angelic-empathy-production-ca3a.up.railway.app/admin](https://angelic-empathy-production-ca3a.up.railway.app/admin)
+
 After seeding, sign in to the admin panel at `http://localhost:5173/admin/login` with:
 
 ```
@@ -260,6 +262,8 @@ design-references/   Reference screenshots the UI was matched against
 ## GitHub Repository
 https://github.com/azharalsaadi/padel-booking-platform
 ## Live Demo
-https://angelic-empathy-production-ca3a.up.railway.app
 
+Customer Website: [https://angelic-empathy-production-ca3a.up.railway.app](https://angelic-empathy-production-ca3a.up.railway.app)
+
+Admin Dashboard: [https://angelic-empathy-production-ca3a.up.railway.app/admin](https://angelic-empathy-production-ca3a.up.railway.app/admin)
 
