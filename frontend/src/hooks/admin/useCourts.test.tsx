@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter'
 import { apiClient } from '@/api/client'
 import { useCourts, useCreateCourt, useDeleteCourt } from '@/hooks/admin/useCourts'
@@ -14,12 +13,7 @@ import { useCourts, useCreateCourt, useDeleteCourt } from '@/hooks/admin/useCour
  * function was called.
  */
 describe('useCourts cache invalidation (real QueryClient, HTTP transport mocked)', () => {
-  const globalMock = new MockAdapter(axios)
   const clientMock = new MockAdapter(apiClient)
-
-  beforeAll(() => {
-    globalMock.onGet(/\/sanctum\/csrf-cookie$/).reply(204)
-  })
 
   afterEach(() => {
     clientMock.reset()

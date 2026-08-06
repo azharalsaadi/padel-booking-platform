@@ -1,5 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
-import axios from 'axios'
+import { afterEach, describe, expect, it } from 'vitest'
 import MockAdapter from 'axios-mock-adapter'
 import { apiClient } from '@/api/client'
 import {
@@ -13,16 +12,9 @@ import {
 } from '@/api/customer'
 import { parseApiError } from '@/api/errors'
 
-// Response bodies below are the exact shapes captured from a real backend
-// run during Step 16 integration verification (GET /sanctum/csrf-cookie,
-// then the real endpoints) — not guessed.
+// Response bodies below are the exact shapes captured from a real backend run — not guessed.
 describe('customer API (HTTP transport mocked, real backend response shapes)', () => {
-  const globalMock = new MockAdapter(axios)
   const clientMock = new MockAdapter(apiClient)
-
-  beforeAll(() => {
-    globalMock.onGet(/\/sanctum\/csrf-cookie$/).reply(204)
-  })
 
   afterEach(() => {
     clientMock.reset()

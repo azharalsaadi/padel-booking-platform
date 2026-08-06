@@ -10,8 +10,10 @@ use Laravel\Sanctum\HasApiTokens;
 /**
  * The only authenticatable identity in this system — customers always book
  * as guests (no accounts), so this is deliberately not shared with any
- * customer-facing concept. Authenticated via Sanctum's SPA (session-cookie)
- * flow against the dedicated 'admin' guard, see config/auth.php.
+ * customer-facing concept. Authenticated via stateless Sanctum personal
+ * access tokens (Authorization: Bearer <token>) — see
+ * AdminAuthController — not cookies/sessions, since the frontend and
+ * backend are deployed on different domains.
  */
 class AdminUser extends Authenticatable
 {

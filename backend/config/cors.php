@@ -7,14 +7,16 @@ return [
     | Cross-Origin Resource Sharing (CORS) Configuration
     |--------------------------------------------------------------------------
     |
-    | The React frontend runs on a different origin (port) than this API
-    | during development, so every API path plus Sanctum's CSRF-cookie
-    | route need CORS enabled with credentials support for the session
-    | cookie to be sent/received correctly.
+    | The React frontend runs on a different origin than this API (a
+    | different port locally, a different Railway domain in production), so
+    | every API path needs CORS enabled. Auth is stateless Sanctum bearer
+    | tokens carried in an Authorization header — no cookies are sent or
+    | read, so there's no CSRF-cookie route to allow and no need for
+    | supports_credentials.
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*'],
 
     'allowed_methods' => ['*'],
 
@@ -32,6 +34,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => true,
+    'supports_credentials' => false,
 
 ];

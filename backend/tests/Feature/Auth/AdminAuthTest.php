@@ -15,13 +15,25 @@ class AdminAuthTest extends TestCase
     {
         parent::setUp();
         RateLimiter::clear('login');
+    }
 
-        // Sanctum's EnsureFrontendRequestsAreStateful only attaches session
-        // handling (StartSession, CSRF) when a request presents as coming
-        // from a configured stateful domain (via Referer/Origin). Without
-        // this, $request->session() throws in the controller — exactly as
-        // the real React frontend's requests will present.
-        $this->withHeader('Referer', 'http://localhost:5173/');
+    /**
+     * Laravel's 'auth' service is a container singleton, so its resolved
+     * guard instances (including Sanctum's) survive across multiple
+     * $this->getJson()/postJson() calls within one test method. Once the
+     * 'sanctum' guard resolves a non-null user it caches that user for the
+     * rest of the guard's lifetime (Illuminate\Auth\RequestGuard::user()),
+     * so a second call reusing the same now-revoked token would otherwise
+     * still "authenticate" against that stale cache instead of re-checking
+     * the database. Forgetting the cached guards before every bearer-token
+     * request forces a fresh lookup every time — exactly like two separate
+     * real HTTP requests would each get in production.
+     */
+    private function bearer(string $token): self
+    {
+        $this->app['auth']->forgetGuards();
+
+        return $this->withHeader('Authorization', "Bearer {$token}");
     }
 
     public function test_admin_can_login_with_valid_credentials(): void
@@ -37,13 +49,45 @@ class AdminAuthTest extends TestCase
         ]);
 
         $response->assertOk();
-        $response->assertJsonPath('data.email', 'admin@padel.test');
-        $this->assertAuthenticatedAs($admin, 'admin');
+        $response->assertJsonPath('data.admin.email', 'admin@padel.test');
+        $this->assertIsString($response->json('data.token'));
+        $this->assertNotSame('', $response->json('data.token'));
+
+        // The returned token actually authenticates a subsequent request —
+        // not just present in the payload, but a working Sanctum token.
+        $this->bearer($response->json('data.token'))
+            ->getJson('/api/admin/me')
+            ->assertOk()
+            ->assertJsonPath('data.email', 'admin@padel.test');
+
+        $this->assertSame(1, $admin->tokens()->count());
+    }
+
+    public function test_login_issues_a_fresh_token_and_revokes_any_previous_one(): void
+    {
+        $admin = AdminUser::factory()->create(['email' => 'admin@padel.test', 'password' => 'Password123!']);
+
+        $first = $this->postJson('/api/admin/login', [
+            'email' => 'admin@padel.test',
+            'password' => 'Password123!',
+        ])->json('data.token');
+
+        $second = $this->postJson('/api/admin/login', [
+            'email' => 'admin@padel.test',
+            'password' => 'Password123!',
+        ])->json('data.token');
+
+        $this->assertNotSame($first, $second);
+        $this->assertSame(1, $admin->tokens()->count());
+
+        // The old token issued by the first login no longer works.
+        $this->bearer($first)->getJson('/api/admin/me')->assertStatus(401);
+        $this->bearer($second)->getJson('/api/admin/me')->assertOk();
     }
 
     public function test_login_fails_with_invalid_email_and_does_not_reveal_which_field_was_wrong(): void
     {
-        AdminUser::factory()->create(['email' => 'admin@padel.test', 'password' => 'Password123!']);
+        $admin = AdminUser::factory()->create(['email' => 'admin@padel.test', 'password' => 'Password123!']);
 
         $response = $this->postJson('/api/admin/login', [
             'email' => 'nobody@padel.test',
@@ -52,12 +96,12 @@ class AdminAuthTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('email');
-        $this->assertGuest('admin');
+        $this->assertSame(0, $admin->tokens()->count());
     }
 
     public function test_login_fails_with_invalid_password_using_the_same_generic_message(): void
     {
-        AdminUser::factory()->create(['email' => 'admin@padel.test', 'password' => 'Password123!']);
+        $admin = AdminUser::factory()->create(['email' => 'admin@padel.test', 'password' => 'Password123!']);
 
         $wrongEmail = $this->postJson('/api/admin/login', [
             'email' => 'nobody@padel.test',
@@ -71,7 +115,7 @@ class AdminAuthTest extends TestCase
 
         $wrongPassword->assertStatus(422);
         $wrongPassword->assertJsonValidationErrors('email');
-        $this->assertGuest('admin');
+        $this->assertSame(0, $admin->tokens()->count());
 
         // Identical wording regardless of which part was wrong -> no
         // enumeration signal for an attacker.
@@ -88,27 +132,40 @@ class AdminAuthTest extends TestCase
         $response->assertStatus(401);
     }
 
+    public function test_request_with_invalid_bearer_token_is_rejected(): void
+    {
+        $response = $this->bearer('not-a-real-token')->getJson('/api/admin/me');
+
+        $response->assertStatus(401);
+    }
+
     public function test_authenticated_admin_can_fetch_me(): void
     {
         $admin = AdminUser::factory()->create(['email' => 'admin@padel.test']);
+        $token = $admin->createToken('admin-spa')->plainTextToken;
 
-        $response = $this->actingAs($admin, 'admin')->getJson('/api/admin/me');
+        $response = $this->bearer($token)->getJson('/api/admin/me');
 
         $response->assertOk();
         $response->assertJsonPath('data.email', 'admin@padel.test');
     }
 
-    public function test_logout_invalidates_the_session(): void
+    public function test_logout_deletes_only_the_current_access_token(): void
     {
         $admin = AdminUser::factory()->create();
+        $currentToken = $admin->createToken('admin-spa')->plainTextToken;
+        $otherDeviceToken = $admin->createToken('admin-spa')->plainTextToken;
 
-        $this->actingAs($admin, 'admin');
-        $this->assertAuthenticatedAs($admin, 'admin');
-
-        $response = $this->postJson('/api/admin/logout');
+        $response = $this->bearer($currentToken)->postJson('/api/admin/logout');
 
         $response->assertOk();
-        $this->assertGuest('admin');
+
+        // The token used for this request is gone...
+        $this->bearer($currentToken)->getJson('/api/admin/me')->assertStatus(401);
+        $this->assertSame(1, $admin->tokens()->count());
+
+        // ...but a token belonging to another session/device is untouched.
+        $this->bearer($otherDeviceToken)->getJson('/api/admin/me')->assertOk();
     }
 
     public function test_login_is_rate_limited_after_five_attempts_per_minute(): void
@@ -159,11 +216,11 @@ class AdminAuthTest extends TestCase
             'password' => 'Password123!',
         ]);
         $login->assertOk();
-        $this->assertArrayNotHasKey('password', $login->json('data'));
-        $this->assertArrayNotHasKey('remember_token', $login->json('data'));
+        $this->assertArrayNotHasKey('password', $login->json('data.admin'));
+        $this->assertArrayNotHasKey('remember_token', $login->json('data.admin'));
         $this->assertStringNotContainsString($admin->password, $login->getContent());
 
-        $me = $this->actingAs($admin, 'admin')->getJson('/api/admin/me');
+        $me = $this->bearer($login->json('data.token'))->getJson('/api/admin/me');
         $me->assertOk();
         $this->assertArrayNotHasKey('password', $me->json('data'));
         $this->assertArrayNotHasKey('remember_token', $me->json('data'));

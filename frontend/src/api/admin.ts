@@ -1,4 +1,5 @@
 import { apiClient } from '@/api/client'
+import { clearAdminToken, setAdminToken } from '@/api/adminToken'
 import type {
   AdminBooking,
   AdminBookingFilters,
@@ -19,13 +20,28 @@ interface Envelope<T> {
 
 // --- Auth ---------------------------------------------------------------
 
+interface LoginResult {
+  admin: AdminUser
+  token: string
+}
+
 export async function adminLogin(email: string, password: string): Promise<AdminUser> {
-  const response = await apiClient.post<Envelope<AdminUser>>('/admin/login', { email, password })
-  return response.data.data
+  const response = await apiClient.post<Envelope<LoginResult>>('/admin/login', { email, password })
+  const { admin, token } = response.data.data
+  setAdminToken(token)
+  return admin
 }
 
 export async function adminLogout(): Promise<void> {
-  await apiClient.post('/admin/logout')
+  try {
+    await apiClient.post('/admin/logout')
+  } catch {
+    // The token is being discarded locally either way (see below) — a
+    // failed/unreachable logout call shouldn't strand the admin in a
+    // logged-in-looking UI they can't get out of.
+  } finally {
+    clearAdminToken()
+  }
 }
 
 export async function fetchAdminMe(): Promise<AdminUser> {

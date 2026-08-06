@@ -7,9 +7,13 @@ return [
     | Stateful Domains
     |--------------------------------------------------------------------------
     |
-    | Requests from these domains / hosts will receive stateful (cookie
-    | session) API authentication. This should list the frontend origin(s)
-    | that talk to this API — the React (Vite) dev server by default.
+    | Unused: bootstrap/app.php deliberately does not call
+    | $middleware->statefulApi(), so EnsureFrontendRequestsAreStateful never
+    | runs and this list is never consulted. Admin auth is 100% stateless
+    | Sanctum personal-access tokens (Authorization: Bearer <token>) — see
+    | AdminAuthController — which needs no cookie/session domain matching.
+    | Left in place only because Sanctum's config file expects the key to
+    | exist; safe to ignore.
     |
     */
 
@@ -23,10 +27,16 @@ return [
     | Sanctum Guards
     |--------------------------------------------------------------------------
     |
-    | This array contains the authentication guards that will be checked when
-    | Sanctum is trying to authenticate a request. This app has only one
-    | authenticatable identity — admins — so only the 'admin' guard is
-    | checked. There is no customer guard.
+    | Fallback guard(s) Sanctum's token guard checks *before* looking for a
+    | bearer token. In production this never matches anything real: with no
+    | session middleware on the 'api' group (see bootstrap/app.php), the
+    | 'admin' session guard never has a logged-in user to find, so every
+    | real request is authenticated purely by its Authorization: Bearer
+    | token. This still matters for the test suite, though — Laravel's
+    | $this->actingAs($admin, 'admin') test helper authenticates this same
+    | 'admin' guard in memory (no real session involved), which is how the
+    | non-auth-focused admin feature tests (courts, closures, pricing
+    | rules, bookings) simulate "logged in" without minting a real token.
     |
     */
 

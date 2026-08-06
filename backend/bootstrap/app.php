@@ -12,9 +12,17 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Prepends Sanctum's EnsureFrontendRequestsAreStateful to the 'api'
-        // group, enabling cookie-session auth for the React SPA.
-        $middleware->statefulApi();
+        // Deliberately NOT calling $middleware->statefulApi() here. That
+        // would prepend Sanctum's EnsureFrontendRequestsAreStateful to the
+        // 'api' group for cookie-session SPA auth, which requires the
+        // frontend and backend to share a cookie jar (same site or a
+        // configured stateful domain) — impossible once they're deployed
+        // on separate Railway domains, and the root cause of the "Session
+        // store not set on request" / 419 "session expired" errors admin
+        // login used to hit in that setup. Admin auth is now 100%
+        // stateless Sanctum personal-access tokens (Authorization: Bearer
+        // <token>, see AdminAuthController) — no session or CSRF cookie is
+        // ever needed for any /api route, admin or guest.
 
         // This app has no named 'login' route (no session-based web UI —
         // admin auth is the SPA's own login screen). Laravel's framework

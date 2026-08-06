@@ -1,9 +1,10 @@
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
-import axios from 'axios'
+import { afterEach, describe, expect, it } from 'vitest'
 import MockAdapter from 'axios-mock-adapter'
 import { apiClient } from '@/api/client'
+import { getAdminToken } from '@/api/adminToken'
 import {
   adminLogin,
+  adminLogout,
   createClosure,
   createCourt,
   createPricingRule,
@@ -17,28 +18,60 @@ import {
 } from '@/api/admin'
 import { parseApiError } from '@/api/errors'
 
-// Response bodies mirror a real backend run during Step 16 verification
-// (real login/courts/pricing-rules/closures/bookings HTTP calls).
+// Response bodies mirror a real backend run (real login/courts/pricing-rules/closures/bookings HTTP calls).
 describe('admin API (HTTP transport mocked, real backend response shapes)', () => {
-  const globalMock = new MockAdapter(axios)
   const clientMock = new MockAdapter(apiClient)
-
-  beforeAll(() => {
-    globalMock.onGet(/\/sanctum\/csrf-cookie$/).reply(204)
-  })
 
   afterEach(() => {
     clientMock.reset()
   })
 
-  it('logs in and unwraps the AdminUserResource envelope', async () => {
+  it('logs in, unwraps the admin+token envelope, and stores the bearer token', async () => {
     clientMock.onPost('/admin/login').reply(200, {
-      data: { id: 1, name: 'Admin', email: 'admin@padel.test', created_at: '2026-08-02T12:39:29.000000Z', updated_at: '2026-08-02T12:39:29.000000Z' },
+      data: {
+        admin: { id: 1, name: 'Admin', email: 'admin@padel.test', created_at: '2026-08-02T12:39:29.000000Z', updated_at: '2026-08-02T12:39:29.000000Z' },
+        token: '1|abcdefghijklmnopqrstuvwxyz',
+      },
     })
 
     const admin = await adminLogin('admin@padel.test', 'Password123!')
 
     expect(admin).toEqual({ id: 1, name: 'Admin', email: 'admin@padel.test', created_at: '2026-08-02T12:39:29.000000Z', updated_at: '2026-08-02T12:39:29.000000Z' })
+    expect(getAdminToken()).toBe('1|abcdefghijklmnopqrstuvwxyz')
+  })
+
+  it('logs out, calls the API with the stored bearer token, and clears the token locally', async () => {
+    clientMock.onPost('/admin/login').reply(200, {
+      data: {
+        admin: { id: 1, name: 'Admin', email: 'admin@padel.test', created_at: '', updated_at: '' },
+        token: '1|abcdefghijklmnopqrstuvwxyz',
+      },
+    })
+    await adminLogin('admin@padel.test', 'Password123!')
+
+    clientMock.onPost('/admin/logout').reply(200, { message: 'Logged out successfully.' })
+
+    await adminLogout()
+
+    expect(clientMock.history.post.find((r) => r.url === '/admin/logout')?.headers?.Authorization).toBe(
+      'Bearer 1|abcdefghijklmnopqrstuvwxyz',
+    )
+    expect(getAdminToken()).toBeNull()
+  })
+
+  it('still clears the token locally even when the logout API call fails', async () => {
+    clientMock.onPost('/admin/login').reply(200, {
+      data: {
+        admin: { id: 1, name: 'Admin', email: 'admin@padel.test', created_at: '', updated_at: '' },
+        token: '1|abcdefghijklmnopqrstuvwxyz',
+      },
+    })
+    await adminLogin('admin@padel.test', 'Password123!')
+
+    clientMock.onPost('/admin/logout').networkError()
+
+    await expect(adminLogout()).resolves.toBeUndefined()
+    expect(getAdminToken()).toBeNull()
   })
 
   it('maps a 401 from /admin/me to an unauthenticated error', async () => {
