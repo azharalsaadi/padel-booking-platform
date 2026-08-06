@@ -257,5 +257,9 @@ backend/             Laravel 12 API (bookings, payments, admin panel backend)
 frontend/            React 19 + TypeScript + Vite (customer site + admin panel)
 design-references/   Reference screenshots the UI was matched against
 ```
+## GitHub Repository
+https://github.com/azharalsaadi/padel-booking-platform
+## Live Demo
+https://angelic-empathy-production-ca3a.up.railway.app
 
 
