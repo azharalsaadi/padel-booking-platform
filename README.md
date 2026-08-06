@@ -258,14 +258,4 @@ frontend/            React 19 + TypeScript + Vite (customer site + admin panel)
 design-references/   Reference screenshots the UI was matched against
 ```
 
-## GitHub repository
 
-This project is prepared for a public GitHub repository. Before pushing:
-- No `.env` files, credentials, API keys, or database dumps are tracked (verified — see each app's `.gitignore`).
-- `node_modules/`, `vendor/`, build output (`frontend/dist/`), logs, and caches are all excluded.
-- Replace the placeholder above (`git clone <this-repository-url>`) with the real repository URL once it exists on GitHub.
-
-## Live demo
-
-Live Demo:
-https://angelic-empathy-production-ca3a.up.railway.app
