@@ -67,7 +67,7 @@ class MockThawaniControllerTest extends TestCase
 
     // --- MockThawaniService::isActive() ----------------------------------
 
-    public function test_is_active_requires_both_mock_mode_and_a_local_or_testing_environment(): void
+    public function test_is_active_depends_only_on_thawani_mode_not_environment(): void
     {
         config(['thawani.mode' => 'mock', 'app.env' => 'testing']);
         $this->assertTrue(MockThawaniService::isActive());
@@ -76,6 +76,9 @@ class MockThawaniControllerTest extends TestCase
         $this->assertFalse(MockThawaniService::isActive());
 
         config(['thawani.mode' => 'mock', 'app.env' => 'production']);
+        $this->assertTrue(MockThawaniService::isActive());
+
+        config(['thawani.mode' => 'real', 'app.env' => 'production']);
         $this->assertFalse(MockThawaniService::isActive());
     }
 

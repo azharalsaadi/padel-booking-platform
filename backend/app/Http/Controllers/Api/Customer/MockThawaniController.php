@@ -9,9 +9,10 @@ use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 
 /**
- * Backs the local mock Thawani checkout page (THAWANI_MODE=mock,
- * local/testing only — every route here sits behind the 'thawani.mock'
- * middleware, see EnsureThawaniMockActive and MockThawaniService::isActive()).
+ * Backs the local mock Thawani checkout page (THAWANI_MODE=mock, any
+ * environment including production — every route here sits behind the
+ * 'thawani.mock' middleware, see EnsureThawaniMockActive and
+ * MockThawaniService::isActive()).
  *
  * Every action is scoped by the unguessable mock session id embedded in
  * the checkout_url the customer already holds from booking creation —

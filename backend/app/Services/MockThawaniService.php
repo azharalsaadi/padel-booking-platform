@@ -9,10 +9,13 @@ use Illuminate\Support\Str;
 
 /**
  * Stand-in for ThawaniService when no real Sandbox credentials exist
- * (THAWANI_MODE=mock, local/testing only — see isActive()). "Creating a
- * checkout session" here is purely local: a random session id and a URL
- * pointing at this app's own frontend mock checkout page. Nothing is ever
- * sent to the real UAT API and no secret/publishable key is read.
+ * (THAWANI_MODE=mock — see isActive(); this project ships with no real
+ * merchant credentials at all, so mock mode is intentionally allowed in
+ * every environment, including production, for demonstration purposes).
+ * "Creating a checkout session" here is purely local: a random session id
+ * and a URL pointing at this app's own frontend mock checkout page.
+ * Nothing is ever sent to the real UAT API and no secret/publishable key
+ * is read.
  *
  * The mock checkout page (MockThawaniController) applies its outcome via
  * PaymentService::applyMockResult(), which reuses the exact same
@@ -26,13 +29,14 @@ class MockThawaniService implements ThawaniGateway
      * decide the container binding (AppServiceProvider), whether the mock
      * routes are registered at all (routes/api.php, decided once at
      * boot), and as a redundant per-request check in their middleware.
-     * Reads config('app.env') rather than app()->environment() so tests
-     * can toggle it with a plain config() override.
+     * Deliberately THAWANI_MODE alone, with no environment restriction:
+     * this academic project has no real Thawani credentials in any
+     * environment, so gating mock mode to local/testing only made it
+     * impossible to demo on a deployed (e.g. Railway production) instance.
      */
     public static function isActive(): bool
     {
-        return config('thawani.mode') === 'mock'
-            && in_array(config('app.env'), ['local', 'testing'], true);
+        return config('thawani.mode') === 'mock';
     }
 
     public function createCheckoutSession(

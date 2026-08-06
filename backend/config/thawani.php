@@ -25,11 +25,12 @@ return [
     */
 
     // 'mock' (default for this academic project — no real merchant
-    // credentials exist) simulates the entire Thawani checkout flow
-    // locally, no network call and no key required. 'real' calls the
-    // actual UAT API in config('thawani.base_url') below. Mock mode is
-    // additionally gated to local/testing environments regardless of this
-    // value — see MockThawaniService::isActive().
+    // credentials exist in any environment) simulates the entire Thawani
+    // checkout flow locally, no network call and no key required, and
+    // works the same way in production as it does locally — see
+    // MockThawaniService::isActive(). 'real' calls the actual UAT API in
+    // config('thawani.base_url') below and still requires
+    // THAWANI_SECRET_KEY/THAWANI_PUBLISHABLE_KEY regardless of environment.
     'mode' => env('THAWANI_MODE', 'mock'),
 
     'base_url' => env('THAWANI_BASE_URL', 'https://uatcheckout.thawani.om/api/v1'),

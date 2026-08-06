@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Customer\BookingQuoteController;
 use App\Http\Controllers\Api\Customer\GuestBookingController;
 use App\Http\Controllers\Api\Customer\MockThawaniController;
 use App\Http\Controllers\Webhooks\ThawaniWebhookController;
+use App\Services\MockThawaniService;
 use Illuminate\Support\Facades\Route;
 
 // Public, customer-facing — guests only, no authentication. Read-only but
@@ -42,15 +43,17 @@ Route::middleware('throttle:guest-booking')->group(function () {
 Route::post('webhooks/thawani', [ThawaniWebhookController::class, 'handle']);
 
 // Local Thawani checkout simulator — this academic project has no real
-// merchant credentials, so THAWANI_MODE=mock (local/testing only) routes
-// checkout through here instead of the real UAT API. Registered only when
-// APP_ENV is local/testing at boot (never present in a production route
-// table); the 'thawani.mock' middleware adds a redundant per-request
-// check of THAWANI_MODE itself — see MockThawaniService::isActive() and
-// MockThawaniController's docblock for why scoping by the unguessable
-// mock session id (never a booking id) keeps this from being a generic
-// "mark any booking paid" endpoint.
-if (in_array(config('app.env'), ['local', 'testing'], true)) {
+// merchant credentials in any environment, so THAWANI_MODE=mock routes
+// checkout through here instead of the real UAT API, including on a
+// deployed production instance used for demonstration. Registered
+// whenever THAWANI_MODE=mock at boot, plus always in local/testing so
+// tests can flip config('thawani.mode') at runtime after routes have
+// already loaded (see MockThawaniControllerTest); the 'thawani.mock'
+// middleware adds a redundant per-request check of THAWANI_MODE itself —
+// see MockThawaniService::isActive() and MockThawaniController's docblock
+// for why scoping by the unguessable mock session id (never a booking id)
+// keeps this from being a generic "mark any booking paid" endpoint.
+if (MockThawaniService::isActive() || in_array(config('app.env'), ['local', 'testing'], true)) {
     Route::middleware('thawani.mock')->prefix('mock-thawani')->group(function () {
         Route::get('{sessionId}', [MockThawaniController::class, 'show']);
         Route::post('{sessionId}/succeed', [MockThawaniController::class, 'succeed']);
