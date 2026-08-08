@@ -70,7 +70,7 @@ export function CustomerHeader() {
   }
 
   return (
-    <header className="border-b border-border bg-background">
+    <header className="sticky top-0 z-50 border-b border-border bg-background">
       <Container className="flex h-16 items-center justify-between gap-4">
         <Link to="/" className="shrink-0 font-serif text-2xl font-bold tracking-wide text-primary" aria-label={t('nav.rallyHome')}>
           RALLY
