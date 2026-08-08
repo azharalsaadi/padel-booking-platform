@@ -8,7 +8,9 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/cn'
 import { useLandingOffers } from '@/hooks/useLandingOffers'
 import landingHero from '@/assets/landing-hero.png'
+import pricingRackets from '@/assets/pricing-padel-rackets.png'
 import ctaBackground from '@/assets/cta-background.png'
+
 
 /** Every button on this page uses a 12px radius (rounded-xl) rather than the
  *  shared Button component's --radius-control token, to match the approved
@@ -66,15 +68,25 @@ export function LandingPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-background pt-6 lg:pt-2 lg:pb-9">
+     <section className="bg-background pt-6 lg:pt-2 lg:pb-0">
         {/* The shared Container (widened site-wide for the customer theme
             via --container-6xl in index.css) — using it here, exactly like
             every other section, is what keeps the hero's left/right edges
             aligned with the navbar, cards, CTA, and footer. */}
         <Container>
-          <div className="relative">
+          <div className="relative -mb-10 lg:-mb-14">
             <img src={landingHero} alt="Rally premium padel equipment" className="h-auto w-full" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-black/5 to-transparent" />
+            <div
+  className="absolute inset-0 bg-gradient-to-r from-black/30 via-black/5 to-transparent"
+  style={{
+    WebkitMaskImage: `url(${landingHero})`,
+    maskImage: `url(${landingHero})`,
+    WebkitMaskSize: '100% 100%',
+    maskSize: '100% 100%',
+    WebkitMaskRepeat: 'no-repeat',
+    maskRepeat: 'no-repeat',
+  }}
+/>
             <div className="absolute inset-0 flex items-center">
               <div className="max-w-lg px-6 py-8 sm:px-12 sm:py-10 lg:px-16">
                 <p className="text-xs font-semibold tracking-[0.2em] text-white/70 uppercase">{t('landing.heroEyebrow')}</p>
@@ -101,7 +113,7 @@ export function LandingPage() {
       </section>
 
       {/* Offers */}
-      <section id="offers" className="scroll-mt-20 bg-background py-20 sm:py-28 lg:py-9">
+      <section id="offers" className="scroll-mt-20 bg-background py-12">
         <Container className="flex flex-col gap-10">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -117,74 +129,155 @@ export function LandingPage() {
               <ArrowRight aria-hidden="true" className="h-4 w-4 rtl:rotate-180" strokeWidth={1.75} />
             </a>
           </div>
+<div className="grid gap-6 lg:grid-cols-3 lg:gap-5">
+  {offerQueries.map((query, index) => {
+    const hours = index + 1
+    const copy = OFFER_COPY[hours]
+    const quote = query.data
 
-          <div className="grid gap-6 sm:grid-cols-3 lg:gap-8">
-            {offerQueries.map((query, index) => {
-              const hours = index + 1
-              const copy = OFFER_COPY[hours]
-              const quote = query.data
-              const discountPercent =
-                hours === 2 && quote && quote.discount_baisa > 0
-                  ? Math.round((quote.discount_baisa / quote.standard_subtotal_baisa) * 100)
-                  : null
+    const discountPercent =
+      hours === 2 && quote && quote.discount_baisa > 0
+        ? Math.round(
+            (quote.discount_baisa /
+              quote.standard_subtotal_baisa) *
+              100,
+          )
+        : null
 
-              return (
-                <div
-                  key={hours}
-                  className={cn(
-                    'relative flex flex-col items-center gap-3 rounded-2xl border bg-surface p-8 text-center transition-transform duration-200 hover:scale-[1.02]',
-                    copy.featured ? 'border-primary-300 shadow-soft' : 'border-border',
-                  )}
-                >
-                  {copy.featured && (
-                    <span className="absolute -top-3 rounded-full bg-secondary-100 px-3 py-1 text-xs font-semibold tracking-wide text-primary-700 uppercase">
-                      {t('landing.mostPopular')}
-                    </span>
-                  )}
-                  <p className="text-xs font-semibold tracking-wide text-text-muted uppercase">{copy.label}</p>
+    return (
+      <div
+        key={hours}
+        className={cn(
+          'relative isolate min-h-[320px] overflow-hidden rounded-2xl border p-7 transition-all duration-300 hover:-translate-y-1',
+          copy.featured
+            ? 'border-border bg-[#10231d] text-white shadow-xl'
+            : 'border-border bg-[#faf7f1] text-text shadow-sm',
+        )}
+      >
+        {/* صورة مضارب البادل */}
+        <img
+          src={pricingRackets}
+          alt=""
+          aria-hidden="true"
+          className={cn(
+            'pointer-events-none absolute right-[-55px] bottom-[-45px] z-0 w-[66%] object-contain',
+            copy.featured ? 'opacity-100' : 'opacity-90',
+          )}
+        />
 
-                  {query.isLoading && (
-                    <div className="flex w-full flex-col items-center gap-2 py-2">
-                      <Skeleton className="h-9 w-20" />
-                      <Skeleton className="h-4 w-14" />
-                    </div>
-                  )}
+        {/* تدرّج خلف النص */}
+        <div
+          aria-hidden="true"
+          className={cn(
+            'pointer-events-none absolute inset-0 z-[1]',
+            copy.featured
+              ? 'bg-gradient-to-r from-[#10231d] via-[#10231d]/95 to-transparent'
+              : 'bg-gradient-to-r from-[#faf7f1] via-[#faf7f1]/95 to-transparent',
+          )}
+        />
 
-                  {query.isError && <p className="text-sm text-danger">{t('landing.couldNotLoadRate')}</p>}
+        {/* Most Popular */}
+        {copy.featured && (
+          <span className="absolute top-0 left-1/2 z-20 -translate-x-1/2 rounded-b-xl bg-[#e7c477] px-5 py-1.5 text-[11px] font-bold tracking-wide whitespace-nowrap text-black uppercase">
+            ★ {t('landing.mostPopular')}
+          </span>
+        )}
 
-                  {quote && (
-                    <>
-                      <p className="font-serif text-3xl font-bold text-text">{formatWholeOmr(quote.applied_rule.price_per_hour_baisa)}</p>
-                      <p className="text-xs text-text-muted">{t('landing.perHour')}</p>
-                      {discountPercent !== null && (
-                        <span className="rounded-full bg-success-50 px-2.5 py-1 text-xs font-semibold text-success">
-                          {t('landing.save', { percent: discountPercent })}
-                        </span>
-                      )}
-                    </>
-                  )}
+        {/* محتوى الكارد */}
+        <div className="relative z-10 flex min-h-[264px] w-[62%] flex-col items-start">
+          <p
+            className={cn(
+              'mt-4 text-xs font-semibold tracking-wide uppercase',
+              copy.featured
+                ? 'text-white/75'
+                : 'text-text-muted',
+            )}
+          >
+            {copy.label}
+          </p>
 
-                  <p className="text-sm text-text-muted">{copy.description}</p>
+          {query.isLoading && (
+            <div className="mt-5 flex flex-col gap-2">
+              <Skeleton className="h-9 w-24" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          )}
 
-                  <Link
-                    to="/book"
-                    className={cn(
-                      BUTTON_RADIUS,
-                      'mt-2 inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-medium transition-colors',
-                      copy.featured ? 'bg-primary text-white hover:bg-primary-hover' : 'border border-border text-text hover:border-primary-300',
-                    )}
-                  >
-                    {t('landing.bookThisOffer')}
-                  </Link>
-                </div>
-              )
-            })}
-          </div>
+          {query.isError && (
+            <p className="mt-5 text-sm text-danger">
+              {t('landing.couldNotLoadRate')}
+            </p>
+          )}
+
+          {quote && (
+            <>
+              <p
+                className={cn(
+                  'mt-3 font-serif text-4xl font-bold whitespace-nowrap',
+                  copy.featured
+                    ? 'text-white'
+                    : 'text-text',
+                )}
+              >
+                {formatWholeOmr(
+                  quote.applied_rule.price_per_hour_baisa,
+                )}
+              </p>
+
+              <p
+                className={cn(
+                  'mt-1 text-xs',
+                  copy.featured
+                    ? 'text-white/70'
+                    : 'text-text-muted',
+                )}
+              >
+                {t('landing.perHour')}
+              </p>
+
+              {discountPercent !== null && (
+                <span className="mt-3 rounded-full bg-[#dcebe2] px-3 py-1 text-xs font-semibold text-[#225c43]">
+                  {t('landing.save', {
+                    percent: discountPercent,
+                  })}
+                </span>
+              )}
+            </>
+          )}
+
+          <p
+            className={cn(
+              'mt-4 text-left text-sm leading-relaxed',
+              copy.featured
+                ? 'text-white/80'
+                : 'text-text-muted',
+            )}
+          >
+            {copy.description}
+          </p>
+
+          <Link
+            to="/book"
+            className={cn(
+              BUTTON_RADIUS,
+              'mt-auto inline-flex w-full items-center justify-center px-4 py-3 text-sm font-semibold transition-all hover:scale-[1.02]',
+              copy.featured
+                ? 'bg-[#e7c477] text-black hover:bg-[#d9b464]'
+                : 'bg-[#123027] text-white hover:bg-[#1b4438]',
+            )}
+          >
+            {t('landing.bookThisOffer')}
+          </Link>
+        </div>
+      </div>
+    )
+  })}
+</div>
         </Container>
       </section>
 
       {/* Journey */}
-      <section id="how-to-book" className="scroll-mt-20 bg-background py-20 sm:py-28 lg:py-9">
+      <section id="how-to-book" className="scroll-mt-20 bg-background py-12">
         <Container className="flex flex-col gap-10">
           <div>
             <h2 className="font-serif text-3xl font-semibold text-text">{t('landing.journeyTitle')}</h2>
@@ -211,11 +304,11 @@ export function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-background py-4 lg:py-9">
+      <section className="bg-background py-12">
         <Container>
           <div className="relative isolate overflow-hidden rounded-card">
             <img src={ctaBackground} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-primary-700/75" />
+            <div className="absolute inset-0 bg-primary-700/45" />
             <div className="relative flex flex-col items-center gap-4 px-6 py-16 text-center sm:py-20">
               <h2 className="font-serif text-3xl font-semibold text-white sm:text-4xl">{t('landing.ctaTitle')}</h2>
               <p className="max-w-md text-white/85">{t('landing.ctaSubtitle')}</p>
