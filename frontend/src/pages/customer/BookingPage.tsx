@@ -26,25 +26,49 @@ type Step = 1 | 2 | 3
 
 function StepIndicator({ step, ariaLabel }: { step: Step; ariaLabel: string }) {
   return (
-    <ol className="flex items-center gap-3" aria-label={ariaLabel}>
-      {([1, 2, 3] as Step[]).map((value) => (
-        <li key={value} className="flex items-center gap-3">
-          <span
-            aria-current={step === value ? 'step' : undefined}
-            className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold ${
-              step === value ? 'bg-primary text-white' : 'bg-secondary-100 text-primary-700'
-            }`}
+    <ol
+      className="flex w-full max-w-sm items-center"
+      aria-label={ariaLabel}
+    >
+      {([1, 2, 3] as Step[]).map((value) => {
+        const isCompleted = value < step
+        const isCurrent = value === step
+
+        return (
+          <li
+            key={value}
+            className={value < 3 ? 'flex flex-1 items-center' : 'flex items-center'}
           >
-            {value}
-          </span>
-          {value < 3 && (
             <span
-              aria-hidden="true"
-              className={`h-px w-10 ${value <= step ? 'bg-primary' : 'bg-border'}`}
-            />
-          )}
-        </li>
-      ))}
+              aria-current={isCurrent ? 'step' : undefined}
+              className={`relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
+                isCompleted
+                  ? 'bg-[#111111] text-white'
+                  : isCurrent
+                    ? 'border-2 border-[#111111] bg-[#ead9b9] text-[#111111]'
+                    : 'bg-[#f4ead8] text-[#6b6258]'
+              }`}
+            >
+              {isCompleted ? (
+                <span aria-label="Completed" className="text-lg leading-none">
+                  ✓
+                </span>
+              ) : (
+                value
+              )}
+            </span>
+
+            {value < 3 && (
+              <span
+                aria-hidden="true"
+                className={`h-[3px] flex-1 ${
+                  value < step ? 'bg-[#111111]' : 'bg-[#eadfcd]'
+                }`}
+              />
+            )}
+          </li>
+        )
+      })}
     </ol>
   )
 }

@@ -58,7 +58,7 @@ export function SelectedSlotsReview({ slots, onRemove, pricePerHourBaisa, curren
         <div key={`${slot.date}-${slot.start_time}`} className="flex flex-wrap items-center justify-between gap-4 py-5 first:pt-0 last:pb-0">
           <div className="flex flex-wrap gap-x-8 gap-y-4">
             <div className="flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-background text-text-muted">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-[#e4d1ad] text-text">
                 <CalendarIcon />
               </span>
               <div>
@@ -67,7 +67,7 @@ export function SelectedSlotsReview({ slots, onRemove, pricePerHourBaisa, curren
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-background text-text-muted">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-[#e4d1ad] text-text">
                 <ClockIcon />
               </span>
               <div>
